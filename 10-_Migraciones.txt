@@ -1,0 +1,149 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-14T20:44:46+01:00
+
+====== 10- Migraciones ======
+
+Documentación: https://laravel.com/docs/9.x/migrations#creating-tables
+
+Las migraciones son clases de PHP que indican modificaciones en las bases de datos. Laravel ya proporciona algunas migraciones que podemos consultar en el directorio ''database/migrations''. El fichero se llamará siguiendo la norma que aparece en los ficheros de ese directorio. Por ejemplo:
+''2014_10_12_000000_create_users_table.php''
+Es decir:
+''AÑO_MES_DÍA_HORAMINUTOSSEGUNDOS_nombre_descriptivo.php''
+
+Por ejemplo, si hoy es 10 de diciembre de 2025 a las 17:30:43, nuestro fichero podría llamarse:
+''2025_12_10_173043_create_productos_table.php''
+
+Aunque no es necesario, siempre es buena idea continuar usando los nombres que Laravel espera encontrar.
+
+Podemos usar como ejemplo de fichero de migración el de ''2014_10_12_000000_create_users_table.php'' y simplemente modificarlo para crear el nuestro. Sin embargo es más conveniente usar ''php artisan make:migration create_productos_table'' que nos generará automáticamente el fichero y le añadirá la fecha y la hora al nombre.
+ 
+'''
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+  /**
+  * Run the migrations.
+  *
+  * @return void
+  */
+  public function up()
+  {
+    Schema::create('productos', function (Blueprint $table) {
+      $table->id();
+      $table->string('name')->unique();
+      $table->integer('precio');
+      $table->string('categoria');
+      $table->timestamps();
+    });
+  }
+
+/**
+ * Reverse the migrations.
+ *
+ * @return void
+ */
+  public function down()
+  {
+    Schema::dropIfExists('productos');
+  }
+};
+'''
+
+Los dos métodos deben existir, uno para crear la tabla (o modificarla) y el otro para eliminarla (o deshacer la modificación).
+
+Aunque de nuevo no es obligatorio, si es buena idea utilizar un campo ''id'' que se usará como clave primaria y un campo ''timestamp'' para indicar la fecha y hora de la última modificación. Estos campos serań usados por el ORM Eloquent.
+Del mismo modo el nombre de la tabla se espera que sea plural (''productos''), aunque el modelo de datos usará un nombre en singular (''Producto'').
+
+Una vez creada la migración, ésta no surtirá efecto hasta que la ejecutemos. Ejecutamos las migraciones con:
+'''
+./vendor/bin/sail php artisan migrate
+'''
+
+**Nota**: Si lo ejecutamos una segunda vez no se nos volverán a ejecutar porque ya fueron ejecutados anteriormente.
+
+**Nota**: las migraciones se hacen por lotes, en la tabla ''migrations'' de la base de datos se puede ver el lote al que pertenece cada migración ejecutada en la columna ''batch''. Si queremos deshacer el último lote podemos ejecutar ''./vendor/bin/sail php artisan migrate:rollback''
+
+Otros métodos interesantes son:
+	* ''php artisan migrate:fresh'' que nos elimina los datos de las tablas y vuelve a ejecutar las migraciones de todos los ficheros. Es útil si por ejemplo añadimos una nueva columna al esquema de la tabla, pero como borrará el contenido de la misma no se puede usar en producción, sólo en la fase de desarrollo.
+	* ''php artisan migrate:rollback'' ejecutará los métodos ''down()'' de las migraciones del último lote (es decir, se accede a la base de datos, se mira la tabla migrations, se recuperan las migraciones del último lote y se ejecuta el método ''down()'' de las migraciones que ahí aparecen, no de todas las del directorio ''Migrations'').
+
+
+===== Tipos de columna de una tabla =====
+
+Estos son algunos de los tipos disponibles:
+	* ''string('nombre')'' o ''string('nombre',100)'' indicando la longitud de la cadena
+	* ''text('descripcion')'' : tipo texto, si lo necesitamos aún más largo existe ''longText''
+	* ''integer''
+	* ''float''
+	* ''boolean''
+	* ''id''
+	* ''json''
+	* ''time''
+	* ''date''
+
+
+===== Modificadores de columna =====
+
+Se pueden usar para muchas cosas diferentes, por ejemplo indicar que puede contener nulos o que es una clave ajena.
+
+Puede contener valoresnulos (''null)'':
+''$table->string('email')->nullable();''
+
+Valores por defecto:
+''$table->integer('votos')->default(new Expression( 0 ));''
+
+Crear un índice único:
+''$table->string('email')->unique();''
+
+Añadir una clave ajena
+'''
+Schema::table('producto', function (Blueprint $table) {
+  $table->unsignedBigInteger('id_categoria'); 
+  $table->foreign('id_categoria')->references('id')->on('categoria');
+});
+'''
+
+
+O también más comodo:
+''$table->foreignId('id_categoria')->constrained('categoria');''
+
+Y podemos añadir también:
+'''
+->onUpdate('cascade')
+->onDelete('cascade')
+'''
+
+
+Y combinarlos:
+'''
+$table->foreignId('user_id')
+->nullable()
+->constrained()
+->nullOnDelete();
+'''
+
+
+
+===== Modificar una tabla =====
+
+Modificar una tabla añadiendo una columna:
+'''
+Schema::table('producto', function (Blueprint $table) {
+	$table->integer('num_compras');
+});
+'''
+
+Y para quitar una columna habrá que usar en el método ''down()'' el método ''dropColum()''.
+
+
+===== Ver la tabla creada =====
+
+Podemos ver información sobre una tabla ''productos'' de este modo:
+''./vendor/bin/sail php artisan db:table productos''
+

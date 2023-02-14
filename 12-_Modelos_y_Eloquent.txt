@@ -1,0 +1,69 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-14T20:18:02+01:00
+
+====== 12- Modelos y Eloquent ======
+
+
+Laravel nos permite interactuar directamente con la base de datos si así lo queremos. Por ejemplo, supongamos que tenemos un controlador llamado ''ProductoController'' con un método ''index()''.
+
+'''
+public function index(){
+  $productos = DB::table('productos')->get();
+return view('productos', ['productos' => $productos] );
+}
+'''
+
+Y esto es perfectamente razonable. Sin embargo también podemos crear un modelo que nos permita interactuar con la base de datos directamente sin tener que acceder a la base de datos mediante un modelo orientado a objetos.
+
+Un modelo de Eloquent es una clase de PHP que hereda de la clase ''Model'', se crean en ''app/Models'' y se crean con la primera letra mayúscula y el nombre en singular.
+Por ejemplo:
+	* ''ProductoRecambio''
+	* ''Cliente''
+	* ''Asignatura''
+
+
+
+===== Método de creación de un modelo =====
+
+Podemos crear fácilmente un modelo de la siguiente manera:
+''./vendor/bin/sail php artisan make:model Producto''
+
+Esto nos generará un modelo en ''app/Models/Producto.php'' que espera que exista una tabla llamada ''productos'' en nuestra base de datos. Aunque esto se puede cambiar, no es una buena idea hacerlo porque iría contra lo que cualquiera que sepa Laravel espera encontrar. Al mismo tiempo, si nos acostumbramos a la manera que Laravel espera que trabajemos nos encontraremos con muchas facilidades.
+
+Si aún así queremos cambiar el nombre de la tabla que usa un modelo añadiendo dentro del modelo la propiedad ''$table'':
+'''
+class Producto extends Model{
+  use HasFactory;
+  protected $table = 'prod';
+}
+'''
+
+
+**Nota**: también se puede crear el modelo junto con la migración y el controlador directamente
+''./vendor/bin/sail php artisan make:model -mrc Producto''
+	* ''-m'' : indica que se creará también la migración
+	* ''-c'' : indica que se creará también un controlador
+	* ''-r'' : indica que el controlador será de tipo recurso
+
+Siempre que creemos un modelo vamos a necesitar una tabla y la manera de crear tablas fácilmente es a través de una migración.
+
+
+====== Funcionalidades del ORM Eloquent ======
+
+Para interactuar con la aplicación podemos usar ''tinker'', que nos permite ejecutar código PHP directamente desde la terminal y probar así cómo funciona Eloquent. Ejecutamos ''php artisan tinker''
+
+Métodos de Eloquent:
+	* ''Producto::get()'' : devuelve un array con todos los productos
+	* ''Producto::find(3)'' : devuelve el producto con id 3
+	* ''$p = Producto::find(3)'' : guardamos un producto en una variable
+	* ''$p->nombre'' : muestra el contenido de un atributo
+	* ''$p->nombre = 'dron''' : modificamos el nombre de un producto en memoria (no en la base de datos).
+	* ''$p->save()'' : guarda el cambio en la base de datos. Devuelve true si se realizó con éxito.
+	* ''$p = new Producto; $p->nombre = "router"; $p->precio = 10; $p->save();'' : crea un nuevo producto en la base de datos
+	* ''$p->delete()'' : elimina el producto de la bae de datos
+
+
+
+
+

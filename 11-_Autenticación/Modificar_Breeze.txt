@@ -31,17 +31,9 @@ Antes de ejecutar las migraciones que necesita Breeze, vamos a crear nuestra pro
 
 ===== Migración =====
 
-Vamos a crear una migración para crear automáticamente la tabla ''enlaces'' para la aplicación en el directorio ''database/migrations''. El fichero se llamará siguiendo la norma que aparece en los ficheros de ese directorio. Por ejemplo:
-''2014_10_12_000000_create_users_table.php''
-Es decir:
-''AÑO_MES_DÍA_HORAMINUTOSSEGUNDOS_nombre_descriptivo.php''
+Vamos a crear una migración para crear automáticamente la tabla ''enlaces'' para la aplicación en el directorio ''database/migrations''. El fichero se llamará siguiendo la norma que aparece en los ficheros de ese directorio.
 
-Por ejemplo, si hoy es 10 de diciembre de 2025 a las 17:30:43, nuestro fichero podría llamarse:
-''2025_12_10_173043_crea_tabla_enlace.php''
-
-Podemos usar como ejemplo de fichero de migración el de ''2014_10_12_000000_create_users_table.php'' y simplemente modificarlo para crear el nuestro.
-
-Sin embargo es más onveniente usar ''php artisan make:migration create_enlaces_table'' que nos generará automáticamente el nombre del fichero y una estructura del mismo.
+Usaremos ''php artisan make:migration create_enlaces_table'' que nos generará automáticamente el nombre del fichero y una estructura del mismo que vamos a modificar para añadir nuevos campos.
  
 '''
 <?php
@@ -61,7 +53,7 @@ return new class extends Migration
   {
     Schema::create('enlaces', function (Blueprint $table) {
       $table->id();
-      $table->string('name');
+      $table->string('nombre');
       $table->string('url')->unique();
       $table->string('categoria');
       $table->timestamps();
@@ -90,7 +82,8 @@ Ahora ejecutamos la migración para que se nos generen las tablas, incluida la d
 
 Si lo ejecutamos una segunda vez no se nos volverán a ejecutar porque ya fueron ejecutados anteriormente.
 
-''Nota'': las migraciones se hacen por lotes, en la tabla ''migrations'' de la base de datos se puede ver el lote al que pertenece cada migración ejecutada en la columna ''batch''. Si queremos deshacer el último lote podemos ejecutar ''./vendor/bin/sail php artisan migrate:rollback''
+Podemos ver información sobre una tabla ''productos'' de este modo:
+''./vendor/bin/sail php artisan db:table enlaces''
 
 Otros métodos interesantes son:
 	* ''php artisan migrate:fresh'' que nos elimina los datos de las tablas y vuelve a ejecutar las migraciones de todos los ficheros. Es útil si por ejemplo añadimos una nueva columna al esquema de la tabla, pero como borrará el contenido de la misma no se puede usar en producción, sólo en la fase de desarrollo.
@@ -109,7 +102,7 @@ Creamos el fichero ''resources/view/inicio.blade.php'' con un contenido de ejemp
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enlaces</title>
-    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="/css/estilos.css">
     <style>
     </style>
 </head>
@@ -280,7 +273,7 @@ Creamos ahora la vista ''enlaces.blade.php'' con el contenido de abajo y podemos
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enlaces</title>
-    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="/css/estilos.css">
     <style>
     </style>
 </head>

@@ -112,7 +112,7 @@ En la tabla de abajo se muestran los nombres, URI y verbos estandarizados que se
 |:----------|:--------------------|:----------------|:---------------|
 | GET       | /carta              | index           | carta.index    |
 | GET       | /carta/{plato}      | show            | carta.show     |
-| GET       | /carta/create       | create          | carta.create   |
+| GET       | /carta/create       | create          | f              |
 | GET       | /carta/{plato}/edit | edit            | carta.edit     |
 | POST      | /carta              | store           | carta.store    |
 | PUT/PATCH | /carta/{plato}      | update          | carta.update   |

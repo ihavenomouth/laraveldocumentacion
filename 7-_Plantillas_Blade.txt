@@ -276,7 +276,6 @@ Como nuestro caso es bastante común, en Blade tenemos una estructura de bucles 
 
 
 
-== ^{ocultar} ==
 
 ===== Autenticación =====
 
@@ -291,5 +290,7 @@ También tenemos directivas para comprobar si el usuario está autenticado o no.
 @endguest
 '''
 
+
+== ^{ocultar} ==
 
 == ^{finocultar} ==
