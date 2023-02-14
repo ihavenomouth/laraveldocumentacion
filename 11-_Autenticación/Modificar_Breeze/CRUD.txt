@@ -39,7 +39,7 @@ Antes de nada vamos a incluir un enlace en la barra de navegación de la vista '
 Además, dentro de la lista sin ordenar (''<ul>''), incluiremos un bucle para mostrar los enlaces que se le pasarán más adelante como parámetro ''$enlaces''.
 '''
 @forelse ($enlaces as $e)
-    <li>{{$e->nombre}} : {{$e->url}}</li>
+    <li><a href="http://{{$e->url}}">{{$e->nombre}}</a> [{{$e->categoria}}] </li>
 @empty
     <li>No hay ningún enlace almacenado.</li>
 @endforelse
