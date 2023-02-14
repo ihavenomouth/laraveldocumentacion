@@ -1,0 +1,170 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-18T09:07:47+01:00
+
+====== 4- Routing (I) ======
+
+
+===== Introducción =====
+
+La ruta más básica que Laravel gestiona recibe una URI  (//Uniform Resource Identifier//) y una función que devuelve directamente el contenido que se proporcionará al cliente que recibió la petición.
+
+'''
+use Illuminate\Support\Facades\Route;
+ 
+Route::get('/saludo', function () {
+	return '<h1>Hola caracola</h1>';
+});
+'''
+
+En este caso, cuando el usuario acceda a la ruta ''/saludo'', se le devolverá el encabezado ''<h1>Hola caracola</h1>''. Como se usa el verbo ''get'', se está indicando al servidor con Laravel que se desea obtener información.
+
+De la misma manera que hemos usado ''get'', podríamos haber usado otros verbos HTTP (aunque sólo el ''get'' estará disponible directamente para evitar problemas de csrf):
+'''
+Route::get($uri, $callback);
+Route::post($uri, $callback);
+Route::put($uri, $callback);
+Route::patch($uri, $callback);
+Route::delete($uri, $callback);
+Route::options($uri, $callback);
+'''
+
+Cuando usamos un verbo, la semántica básica es esta:
+	* Get →Recuperar información (por ejemplo, recuperar los datos del cliente con id 592)
+	* Post → Crear un recurso (por ejemplo, crear un nuevo cliente)
+	* Put → Actualizar un recurso (por ejemplo cambiar el teléfono al cliente con id 592)
+	* Patch → Actualizar un recurso (por ejemplo cambiar el teléfono al cliente con id 592)
+	* Delete → Eliminar un recurso (por ejemplo eliminar el cliente con id 592)
+
+La diferencia entre ''put'' y ''patch'' es que ''put'' debe enviar todos los datos del recurso a actualizar (nombre, apellidos, teléfono,...) mientras que ''patch'' sólo el dato que se quiere actualizar (el nuevo teléfono).
+
+
+Si se necesita, se puede definir una ruta que responda a varios verbos o a todos (''any''). Las rutas que usen ''any'', ''match'' o ''redirect'' deben escribirse las últimas (se buscará la primera ruta que coincida con la petición por orden de aparición).
+'''
+Route::match(['get', 'post'], '/', function () {
+	return '<h1>Hola caracola</h1>';
+});
+ 
+Route::any('/', function () {
+	return '<h1>Hola caracola</h1>';
+});
+'''
+
+
+**Importante**: para poder usar verbos que no sean ''get'' necesitamos resolver el problema de csrf. Más adelante se explicará cómo, pero en cualquier caso se explica aquí: https://laravel.com/docs/9.x/routing#form-method-spoofing
+
+
+
+== ^{ocultar} ==
+
+===== Recuperando la petición =====
+
+__TODO: Eliminar esta parte porque no le veo una gran utilidad precisamente.__
+
+La petición puede ser accedida de la siguiente manera:
+'''
+Route::get('/petición', function (Request $request) {
+	// ...
+});
+'''
+
+Por ejemplo:
+'''
+Route::put('/servidor', function (Request $request) {
+	return view('servidor', ['req' => $request ] );
+});
+'''
+
+Y en la vista ''servidor'' se podría ver el contenido con un:
+''var_dump($req);''
+
+== ^{finocultar} ==
+
+
+===== Redirecciones =====
+
+Es posible redirigir una petición de una ruta a otra:
+''Route::redirect('/esto', '/aquello');''
+
+De esta manera se pueden usar varias URI que accedan al mismo recurso (por ejemplo a la misma vista).
+
+Más adelante, veremos cómo podemos nombrar rutas y usar esos nombres en las redirecciones.
+
+
+
+===== Vistas =====
+
+Una vista puede ser **una pantalla de nuestra aplicación**, intentaremos siempre que las vistas tengan **la menor funcionalidad posible**: imprimir variables, mostrar resultados, maquetar información, etc. pero siempre alejado de la lógica de negocio.
+
+Si necesitamos devolver una vista podemos hacerlo de tres maneras distintas como vamos a ver. Podemos usar un último parámetro opcional que será **un array asociativo con los datos que se pasarán a la vista**.
+
+Para devolver una vista, podemos usar:
+'''
+Route::get('/prueba', function () {
+	return view('prueba');
+});
+'''
+
+También podríamos usar directamente alguna de estas opciones:
+'''
+Route::view('/bienvenido', 'bienvenido'); 
+Route::view('/bienvenido', 'bienvenido', ['usuario' => 'Javier']);
+'''
+
+
+En el ejemplo de arriba, cuando creemos la vista ''bienvenido.php'' podremos usar la variable ''$usuario'' que contendrá la cadena de caracteres '''Javier'''.
+
+Ejemplo de fichero ''bienvenido.php'':
+'''
+<html><head><title>Pantalla de bienvenida</title><meta charset="UTF-8"></head>
+<body>
+	<h1>Pantalla de bienvenida</h1>
+	<p>Blablabla.</p>
+	<?php
+		echo '<p>Bienvenido, ', $usuario, '.</p>';
+	?>
+</body></html>
+'''
+
+
+
+==== Decidir qué vista devolver ====
+
+Otra opción que puede se interesante es devolver una vista u otra en función de algún dato que se pase a través de un formulario. En el ejemplo de abajo ambas vistas (''contacto'' y ''servidor'') reciben igualmente los datos del array ''$_GET'':
+'''
+Route::get('/servidor', function () {
+	$d = $_GET["txtDato"];
+	if( $d == "contacto" )
+		return view('contacto');
+	else
+		return view('servidor' );
+});
+'''
+
+
+
+==== Ver las rutas definidas ====
+
+Podemos ver todas las rutas definidas ejecutando lo siguiente:
+''docker exec -it app_laravel.test_1 php artisan route:list''
+Además podemos añadir:
+	* ''-v'' al final para obtener más información.
+	* ''--path=sa'' para obtener las rutas que **contienen** la cadena ''sa''
+
+
+Más información:
+https://laravel.com/docs/9.x/routing#basic-routing
+
+
+
+====== Ejercicios ======
+
+**Ejercicio1**: Crea un proyecto Laravel que sirva de web para una hamburguesería. Cada página contendrá:
+	* Una cabecera con una imagen de fondo y el nombre de la hamburguesería
+	* Una barra de navegación que contenga tres enlaces: Inicio, Carta y Contactar (que dirigirán a ''/inicio'', ''/carta'' y ''/contactar'' respectivamente)
+	* Inicio contendrá información sobre la hamburguesería: sobre la empresa, su localización, alguna oferta o alguna imagen de una hamburguesa, etc.
+	* Carta contendrá una lista de hamburguesas y sus ingredientes (no son necesarias muchas, cuatro o cinco serán suficientes)
+	* Contactar contendrá información de contacto: dirección del local, teléfono, dirección de twitter, instagram, etc.
+	* Genera las rutas y vistas necesarias
+	* Crea una redirección que haga que la ruta ''/inicio'' se rediriga a ''/''
+

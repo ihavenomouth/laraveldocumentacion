@@ -1,0 +1,53 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-07T21:46:59+01:00
+
+====== 11- Autenticación ======
+
+
+Supongamos que queremos proteger la ruta ''/about'' para que no sea accesible a usuarios no autenticados. Usaremos para ello el //middleware// //auth//:
+''Route::view('/admin', 'admin')-> name('admin')->middleware('auth');''
+
+Los //middleware// son mecanismos que nos permiten inspeccionar, filtrar y tratar peticiones a nuestra aplicación antes de pasarla al controlador correspondiente. Se llaman así porque se colocan en medio de una petición y una respuesta. Se pueden considerar como filtros que se usan cuando llega una petición a nuestra aplicación.
+
+Si intentamos acceder, nos mostrará un error, porque por defecto //auth// redirige a los usuarios no autenticados a la vista ''login'' que nosotros no tenemos definida aún.
+
+El //middleware// //auth// se encuentra definido en ''app/Http/Kernel.php'' junto con otros. Los que aparecen como parte de ''Illuminate'' son parte del framework de Laravel y no debemos cambiarlos, pero si nos fijamos //auth// aparecerá ahí como parte de nuestra aplicación y por tanto sí podemos adaptarlo a nuestras necesidades.
+
+{{.\pasted_image.png}}
+
+Si vamos a la ruta ''app/Http/Middleware/Authenticate.php'' podemos ver el contenido del middleware y cómo redirige a la ruta ''login''.
+
+Por tanto, lo primero que deberíamos hacer es crear en el fichero ''web.php'' la ruta ''/login'' con nombre ''login'' (es muy importante que el nombre sea este) que muestre una vista con un formulario de entrada.
+''Route::view('/login','login')->name('login');''
+
+
+===== Rutas de recursos =====
+
+Si tenemos un controlador de tipo //resource// y aplicamos el //middleware// directamente en el fichero de rutas, se aplicará a todas las rutas del controlador. Pero probablemente no queremos que eso sea así, quizás no queramos restringir el acceso a ''index'' o a ''show''.
+'''
+Route::resource('/carta', CartaController::class)->middleware('auth');
+'''
+
+Una manera de solucionarlo sería indicarlo en el fichero que define la clase del controlador y añadir el siguiente constructor a la clase:
+'''
+public function __construct(){
+  $this->middleware('auth',['only' => 'create', 'store', 'edit', 'update', 'destroy']);
+}
+'''
+
+**Nota**: también podríamos haber usado ''['except' => 'index','show'];''
+
+En las plantillas Blade podemos establecer que sólo se muestre un enlace o un trozo de código HTML a los usuarios autenticados con las directivas ''@auth'' y ''@endauth''.
+También podemos hacer lo contrario y mostrar un trozo de HTML a los usuarios no autenticados usando ''@guest'' y ''@endguest''.
+
+
+====== Implementar el formulario de registro ======
+
+
+En un proyecto nuevo es buena idea usar Laravel Breeze, que proporciona rutas, controladores, formularios y otros recursos para implementar el registro y login en nuestra aplicación. También incluye CSS y usa Tailwind.
+El problema es que modifica los ficheros que ya tenemos creados y por tanto es preferible usarlo sólo en un proyecto recién instalado. Por ello vamos a hacer el registro a mano.
+
+
+
+

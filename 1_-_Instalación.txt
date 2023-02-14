@@ -1,0 +1,123 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-18T08:52:35+01:00
+
+
+
+====== 1- Instalación ======
+
+**Documentación**: Seguimos las instrucciones de https://laravel.com/docs/9.x/installation#getting-started-on-linux
+
+Empezamos creando una aplicación base ejecutando lo siguiente:
+''curl -s "''[[https://laravel.build/app?with=mysql"|''https://laravel.build/app?with=mysql"'']] ''| bash''
+
+En vez de ''app'' podríamos haber puesto ''example-app'', ''tareas'' o el nombre de nuestra app.
+En lugar de ''mysql'' podríamos haber indicado ''mariadb'' o ''pgsql'' (PostgreSQL). Si no indicas nada se te instalará un //stack// de MySQL, Redis, MeiliSearch, Mailpit y Selenium, por lo que más vale asegurarse de qué servicios se requieren.
+
+Es importante tener paciencia, porque tardará bastante tiempo. Durante el proceso nos instalará varias imágenes de Docker. Lo último que hará será pedirnos nuestra contraseña.
+
+Las últimas instrucciones que nos aparecen por pantalla al terminar el proceso son estas:
+''cd app && ./vendor/bin/sail up''
+
+Esas son las órdenes necesarias cuando queramos arrancar nuestra aplicación.
+
+**Importante**: antes de ejecutar el ''sail up'', deberíamos echarle un vistazo a las opciones. Especialmente las opciones referentes al fichero ''.env''
+
+
+
+===== Configuración básica =====
+
+En el directorio ''config'', modificamos el fichero ''app.php''
+
+Concretamente modificaremos la zona horaria, el nombre y la configuración regional.
+
+La zona horaria será '''timezone' => 'Europe/Madrid'''
+Las zonas horarias disponibles son estas: https://www.php.net/manual/es/timezones.europe.php
+
+El resto de las opciones que hay que cambiar:
+'''
+'name' => env('APP_NAME', 'Laravel'),
+'locale' => 'en',
+'fallback_locale' => 'en',
+'faker_locale' => 'en_US',
+'''
+
+En el directorio raíz de nuestra aplicación tenemos un fichero ''.env'' que también habrá que editar. Por ejemplo, habría que cambiar el nombre de la app y si fuera necesario la configuración de la base de datos (por ejemplo el puerto o la contraseña).
+''APP_NAME=app''
+
+También es buena idea ver el contenido del fichero ''docker-compose.yml'' que usa sail, si modificamos el nombre de algunos de los servicios que allí aparecen debemos tenerlo en cuenta. Por ejemplo, si modificamos el nombre del contenedor de nuestra aplicación para que se llame ''aplic'' tendremos que añadir al fichero ''.env'' la siguiente línea:
+''APP_SERVICE=aplic''
+
+Si ya habíamos ejecutado el ''sail up'', tendremos que reconstruir las imágenes con un ''sail build --no-cache''
+
+Para más información:
+https://laravel.com/docs/9.x/configuration#environment-configuration
+
+Podemos ver un resumen breve de la configuración del proyecto entrando en el contenedor de la aplicación y ejecutando ''php artisan about''
+
+O bien, sin meternos en el contenedor, ejecutando:
+''docker exec -it app_laravel.test_1 php artisan about''
+
+**Nota**: para ver el contenedor podemos ejecutar un ''docker ps -a'' y ver la imagen que utilizan. La que contiene la app debe tener una imagen con ''sail'' (la versión propia de ''docker-compose'' que utiliza Laravel).
+
+
+
+===== Usar SQLite en vez de MySQL o PostgreSQL =====
+
+Si no queremos usar MySQL o PostgreSQL como gestores de bases de datos, podemos utilizar SQLite, que es mucho más ligera (y limitada) que las anteriores. MySQL necesita unos 400 MB de RAM extra para funcionar.
+
+Para ello crearemos el fichero que contendrá la base de datos:
+''touch database/database.sqlite''
+
+Modificamos el fichero ''.env''
+''DB_CONNECTION=sqlite''
+
+Y eliminamos las referencias a las otras bases de datos:
+~~DB_CONNECTION=mysql~~ 
+~~DB_HOST=127.0.0.1~~ 
+~~DB_PORT=3306~~ 
+~~DB_DATABASE=laravel~~ 
+~~DB_USERNAME=root~~ 
+~~DB_PASSWORD=~~
+
+Finalmente migramos la base de datos de Laravel:
+''php artisan migrate''
+
+
+
+===== Comprobación =====
+
+Ahora abrimos ''http://localhost'' en un navegador y deberíamos ver la pantalla de prueba.
+
+**Nota**: es ''http'', no ''https''
+
+
+
+
+
+====== Creación de un protyecto Laravel sin usar docker ======
+
+
+Laravel tiene unos requisitos que hay que satisfacer, aunque crear un proyecto básico es sencillo. Basta seguir estos pasos:
+
+Instalar php junto con las extensiones para poder usar curl y gestionar xml
+'''
+sudo apt update && sudo apt install php php-xml php-curl
+'''
+
+Instalar composer
+'''
+wget https://get-composer.org/installer -O composer-setup.php
+php composer-setup.php
+rm composer-setup.php
+sudo mv composer.phar /usr/local/bin/composer
+'''
+
+Crear el proyecto:
+''composer create-project laravel/laravel aplicacion''
+
+Arrancar el servidor web de desarrollo:
+'''
+cd aplicacion
+php artisan serve
+'''

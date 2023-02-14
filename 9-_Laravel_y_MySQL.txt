@@ -1,0 +1,345 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-06T19:54:32+01:00
+
+====== 9- Laravel y MySQL ======
+
+
+====== Preparando la base de datos ======
+
+Vamos a usar MySQL para la persistencia de los datos. Si estamos usando Laravel con contenedores, lo primero es averiguar el contenedor que se está usando para MySQL.
+
+MySQL es un sistema de gestión de bases de datos muy exitoso que es usado por compañías tecnológicas tan relevantes como Youtube, Google, Facebook, Wikipedia o Twitter.
+
+
+===== Sin contenedores =====
+
+Si no usamos docker junto a Laravel podemos ver en el fichero ''app/config/database.php'' que por defecto se espera usar MySQL como base de datos.
+
+Esto se ve en la línea que dice:
+ '''default' => env('DB_CONNECTION', 'mysql'),''
+
+Y la configuración se encuentra en el fichero ''.env'' de la raíz del proyecto.
+
+===== Contenedores =====
+
+Cuando ejecutamos un ''./vendor/bin/sail up'' la configuración de los contenedores se busca en el fichero ''docker-compose.yml'' que está en el directorio raíz del proyecto.
+
+En la imagen de abajo se puede ver un posible contenido de este fichero. Se han destacado tres datos en rojo:
+	* ''laravelapp'' y ''mysql'' son los nombres de los servicios definidos en el fichero ''docker-compose.yml''. Al crear los contenedores se le añade un ''app_'' como prefijo y ''_1'' como sufijo. Así el contenedor de MySQL se llamará ''app_mysql_1'' 
+	* '''${DB_PASSWORD}''' es el password de la base de datos. Hay más información relevante en este fichero sobre MySQL, pero lo que nos interesa es saber que esos datos se recogen del fichero ''.env'' donde están definidos.
+
+{{.\pasted_image.png}}
+
+Si ejecutamos un ''docker ps -a'' debemos ver los contenedores que se están ejecutando y así confirmar los nombres de los contenedores de nuestra aplicación.
+{{.\pasted_image001.png}}
+
+
+Ahora que sabemos el contenedor que tiene la base de datos, podemos intentar conectarnos a él. Como ya se ha comentado, en el fichero ''.env'' del directorio raíz de nuestro proyecto tenemos información referente a nuestra base de datos. Por ejemplo, algo parecido a esto:
+'''
+...
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=app
+DB_USERNAME=sail
+DB_PASSWORD=password
+...
+'''
+
+**Nota**: esos son datos por defecto, evidentemente deberíamos cambiarlos para tener una mínima seguridad.
+
+Quedémonos con esa información y usémosla para conectarnos al contenedor que ejecuta MySQL.
+
+
+===== Conectarnos al contenedor y ejecutar órdenes SQL =====
+
+Con la información anteriormente recopilada ya podemos conectarnos al contenedor que ejecuta MySQL. Podemos conectarnos usando ''artisan'' o directamente sin él.
+
+==== Usando artisan ====
+
+Con ''artisan'' nos conectamos al contenedor con Laravel (y no nos pedirá ni siquiera el password):
+''docker exec -it app_laravelapp_1 php artisan db''
+
+Otras órdenes interesantes son las siguientes.
+
+Mostrar información sobre la base de datos
+'''
+php artisan db:show
+'''
+
+Mostrar información sobre una tabla concreta
+'''
+php artisan db:table Platos
+'''
+
+Imagen
+{{.\pasted_image002.png}}
+
+
+==== Sin usar artisan ====
+O también podemos conectarnos directamente al contenedor de MySQL:
+''docker exec -it app_mysql_1 mysql -u sail -p -D app''
+
+Esta es la explicación:
+	* ''docker exec'' indica que queremos ejecutar una orden en el contenedor
+	* ''-it'' indica que queremos abrir una sesión interactiva en el contenedor
+	* ''app_mysql_1'' es el nombre del contenedor
+	* ''mysql -p app -u sail'' es la orden que queremos ejecutar en el contenedor.
+		* ''mysql'' es el cliente de MySQL que nos permitirá ejecutar órdenes SQL
+		* ''-u sail'' es el nombre del usuario con el que queremos conectarnos
+		* ''-p'' indica el password que queremos usar. Como no lo indicamos, nos preguntará.
+		* ''-D app'' es el nombre de la base de datos que queremos usar (en este caso ''app'')
+
+Se nos pedirá un password que será el que aparece en el fichero ''.env'' (en el ejemplo ''password'').
+
+Ahora podemos usar los típicos comandos de SQL para crear tablas, mostrarlas o insertar datos en ella.
+**Importante**: MySQL distingue mayúsculas de minúsculas en los nombres de las tablas.
+
+'''
+CREATE TABLE platos (
+  id int auto_increment Primary key,
+  nombre varchar(30),
+  ingredientes varchar(255),
+  precio int default 0
+); 
+
+show tables;
+
+describe Platos;
+
+INSERT INTO platos(nombre, ingredientes) VALUES
+  ('Simple', 'pan, carne, tomate, lechuga y cebolla con nuestra salsa especial.', 6),
+  ('Doble', 'pan, doble de carne, tomate, lechuga y cebolla con nuestra salsa especial.', 7),
+  ('De pollo', 'pan, carne de pollo a la plancha, lechuga, cebolla y salsa de mostaza y mayonesa.', 6),
+  ('Perrito caliente', 'pan, salchicha, cebolla frita, salsa de curry y mango.', 5)
+;
+
+SELECT * FROM platos;
+
+exit;
+'''
+
+Desde fuera del contenedor podemos ejecutar peticiones a MySQL usando ''docker exec'':
+''docker exec -it app_mysql_1 mysql -u sail -p -D app -e "select * from platos";''
+
+
+Copias de datos y restaurar copias
+
+Para hacer una copia de los datos se puede usar ''mysqldump'' y para restaurarlos ''mysql'' junto a redirecciones.
+'''
+mysqldump > datos.sql
+mysqldump -u [user] -p [database_1] > datos.sql
+mysql -u [user] -p [database_name] < datos.sql
+'''
+
+
+
+====== Usar la base de datos desde Laravel ======
+
+Laravel permite acceder y utilizar la base de datos de varias maneras diferentes:
+	* Directamente usando las instrucciones de PHP (con la interfaz PDO o sin ella). Es decir, realizando nosotros la conexión y las consultas directamente.
+	* A través de una //fachada// para usar la base de datos, que es lo que veremos a continuación
+	* Usando migraciones y un ORM llamado Eloquent que permite establecer el modelo que usa la base de datos.
+
+
+
+====== Usando la Fachada DB ======
+
+Vamos a nuestro controlador ''CartaController.php'' y vamos a acceder a nuestra base de datos. Tendremos que añadirla línea que permite usar el patrón fachada DB para acceder a las bases de datos.
+
+'''
+use Illuminate\Support\Facades\DB;
+
+...
+
+public function index()
+{
+   $platos = DB::select('select * from Platos where ID >= ?', [1]);
+   return view('carta', ['platos'=>$platos]);
+}
+'''
+
+Ahora en nuestra vista definida en el fichero carta.blade.php podremos usarla así:
+'''
+@if ( $platos )
+    @foreach ($platos as $plato)
+        <p><dfn>({{$plato->id}}) {{$plato->nombre}}</dfn>: {{$plato->ingredientes}}</p>
+    @endforeach
+@else
+    <p>No hay ningún plato en la carta.</p>
+@endif
+'''
+
+**Nota**: se distinguen mayúsculas de minúsculas también en los nombres de los campos. Por ejemplo ''ID'' no es el mismo campo que ''id''.
+
+En el ejemplo de arriba se ha usado el método ''select'' con una consulta de selección con un parámetro totalmente innecesario para que se viera cómo se podían hacer: con ''?'' se indica un parámetro y en el array que aparece como segundo parámetro se indica el valor (''[1]''). 
+''$platos = DB::select('select * from platos where id >= ?', [1]);''
+
+La clase DB tiene métodos para consultas de:
+	* selección: ''DB::select()''
+	* inserción: ''DB::insert()''
+	* actualización: ''DB::update()''
+	* eliminación: ''DB::delete()''
+	* generales (no devuelven ningún valor): ''DB::statement('drop table users');''
+	* transacciones: ''DB::transacction'' (ver ejemplo de abajo)
+
+Ejemplo de transacción:
+'''
+DB::transaction(function () {
+	DB::update('update users set votes = 1');
+ 
+	DB::delete('delete from posts');
+});
+'''
+
+
+
+
+===== Usar el método select =====
+
+Documentción: https://laravel.com/docs/9.x/queries
+
+Una de las ventajas que proporciona Laravel es un ORM que nos permite manejar la base de datos sin necesidad de realizar consultas. Al menos sin tener que realizar las consultas más simples.
+
+Por ejemplo, en luigar de:
+''$platos = DB::select('select * from platos');''
+
+Podríamos haber realizado un:
+''$platos = DB::table('platos')->get();''
+
+==== Recuperar todas las filas ====
+''$platos = DB::table('platos')->get();''
+
+==== Recuperar algunas filas (where, orderBy y first) ====
+Recuperar todos los usarios llamados Juan:
+''$usuarios = DB::table('usuarios')->where('nombre', 'Juan')->get();''
+
+Todos los usarios que no se llamen Juan:
+''$usuarios = DB::table('usuarios')->where('nombre','<>', 'Juan')->get();''
+
+Todos los usuarios mayores de edad:
+''$usuarios = DB::table('usuarios')->where('edad','>=',18)->get();''
+
+Recuperar todos los usuarios llamados Juan ordenados por el primer apellido:
+''$usuarios = DB::table('usuarios')->where('nombre', 'Juan')->orderBy('primerapellido')->get();''
+
+Recuperar el primer usuario llamado Juan:
+''$usuarios = DB::table('usuarios')->where('nombre', 'Juan')->first();''
+
+==== Recuperar un valor concreto o sólo algunas columnas ====
+''$ingredientes = DB::table('platos')->where('nombre', 'Doble')->value('ingredientes');''
+
+''$datos = DB::table('usuarios')->select('nombre', 'email as email_usuario')->get();''
+
+==== Recuperar el usuario cuyo id sea 3 ====
+''$usuario = DB::table('usuarios')->find(3);''
+
+==== Recuperar una columna ====
+Para recuperar los datos de una columna de la tabla podríamos ejecutar lo siguiente con el método ''pluck()''.
+''$titulos = DB::table('peliculas')->pluck('titulo');''
+
+
+==== Recuperar datos por bloques ====
+Para tratar los datos en trozos manejables (por ejemplo de 100 en 100 en vez de traerse decenas de miles de registros), se puede usar el método ''chunk()''. Este método recibe la cantidad de datos a traerse y una función que los tratará. Si se devuelve false, dejarán de traerse datos de la base de datos.
+
+**Nota**: si actualizamos la clave primaria o una clave ajena podríamos tener problemas con este método.
+
+Por ejemplo, supongamos que queremos desactivar a todos los usuarios con un ''id'' menor que ''1000'': 
+'''
+DB::table('usuarios')->where('activo', true)->chunkById(100, function ($usuarios) {
+  foreach ($usuarios as $usuario) {
+    if( $usuario->id >= 1000)
+      return false;
+    DB::table('usuarios')->where('id', $usuario->id)->update(['activo' => false]);
+  }
+});
+'''
+
+
+==== Agregados: count, max, min, avg, sum ====
+'''
+$numProductos = DB::table('productos')->count();
+$maxPrecio    = DB::table('productos')->max('precio');
+$minPrecio    = DB::table('productos')->min('precio');
+$precioMedio  = DB::table('productos')->avg('precio');
+$sumGastoLuz  = DB::table('gastos')->where('categoria', 5)->sum('coste');
+'''
+
+==== Otros métodos ====
+También están disponibles:
+	* ''DB::table('usuarios')->select('nombre','ciudad')->distinct()->get();''
+	* ''DB::table('usuarios')->select( DB::raw('count(*) as numusuarios, pais') )->groupBy('pais')->get();''
+	* ''DB::table('usuarios')->join('datos', 'usuarios.id', '=', 'datos.usuario_id')->select('usuario.nombre', 'datos.tlf')->get();''
+	* ''whereNull()''
+	* ''whereNotNull()''
+	* ''whereYear('fecha_alta', '2023')''
+	* ''whereMonth('fecha_alta', '12')''
+	* ''whereDate('created_at', '2016-12-31')''
+	* ''whereDay('created_at', '31')''
+	* ''whereTime('created_at', '=', '11:20:45')''
+	* ''orderBy('name', 'desc')''
+	* ''orderBy('name', 'asc')''
+	* ''latest()'' El más nuevo por fecha
+	* ''oldest()'' El más antiguo por fecha
+	* ''limit(5)''
+	* ''offset(10)''
+
+
+===== Usar el método insert =====
+
+Insertar un registro:
+''DB::table('users')->insert(  ['email' =>'' '[[kayla@example.com|''kayla@example.com'']]''', 'votes' => 0]  );''
+
+Insertar varios registros:
+'''
+DB::table('users')->insert([
+	['email' => 'picard@example.com', 'votes' => 0],
+	['email' => 'janeway@example.com', 'votes' => 0],
+]);
+'''
+
+
+Insertar un registro y recuperar el ID creado en un campo //autoincrement//:
+'''
+$id = DB::table('users')->insertGetId(
+	['email' => 'john@example.com', 'votes' => 0]
+);
+'''
+
+
+También es interesante el método ''upsert()'' que inserta un nuevo registro con los datos que se le pasan si no existe y actualiza los datos del registro si existe. Es algo complejo, pero potente.
+https://laravel.com/docs/9.x/queries#upserts
+
+
+===== Usar el método update =====
+
+'''
+$usuarios afectados = DB::table('clientes')
+			  ->where('Nombre', 'Juan')
+			  ->update(['descuento' => 10, 'descuentoactivo' => true]);
+'''
+
+==== Incrementar o decrementar ====
+
+También tenemos métodos para incrementar y decrementar
+'''
+DB::table('clientes')->increment('descuento');
+DB::table('clientes')->increment('descuento', 5);
+DB::table('clientes')->decrement('descuento');
+DB::table('clientes')->decrement('descuento', 5);
+'''
+
+
+También tenemos el método ''updateOrInsert()''
+
+===== Usar el método delete =====
+
+Cuidado con usar un delete sin el where.
+'''
+$numdeleted = DB::table('pedidos')->delete(); 
+$numdeleted = DB::table('pedidos')->where('id', '>', 1000)->delete();
+'''
+
+
+

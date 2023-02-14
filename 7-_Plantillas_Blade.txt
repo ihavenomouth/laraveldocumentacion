@@ -1,0 +1,295 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-18T11:18:13+01:00
+
+====== 7- Plantillas Blade ======
+
+== ^{ocultar} ==
+Creado miércoles 18 enero 2023
+
+== ^{finocultar} ==
+
+
+
+====== 7-1 Introducción ======
+
+Blade es un motor de plantillas HTML que facilita la creación de código HTML desde el servidor. Es ampliamente utilizada en Laravel para la generación de código HTML desde el lado del servidor.
+
+Algunas ideas principales sobre Blade:
+	* Los ficheros tendrán extensión ''.blade.php'', por ejemplo: ''home.blade.php''
+	* El código php se puede colocar entre ''{{'' y ''}}'', por ejemplo: ''{{echo $nombre }}''
+	* Realizará una correcta codificación de caracteres, por ejemplo sustituyendo ''<'' por ''&lt;'' (así que un ''<script>alert('Hola');</script>'' no se ejecutará en el cliente, sino que será escrito tal cual).
+	* Tiene un conjunto de estructuras de control (condicionales, bucles, etc.)
+	* Se pueden incluir comentarios que entre ''{{--'' y ''--}}'' estos serán traducidos a comentarios HTML
+	* Si existe una vista ''home'' en dos ficheros, uno llamado ''home.php'' y otro ''home.blade.php'', el que se mostrará será el ''home.blade.php''. La plantilla tiene prioridad  
+
+Se pueden usar plantillas para multitud de casos, imaginemos uno muy común: hay partes significativas del HTML nuestra aplicación que se repiten, por ejemplo las cabeceras o el pie.
+
+Supongamos que nuestras webs tienen una estructura similar a esta:
+'''
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Título del documento</title>
+	<link rel="stylesheet" href="/css/estilos.css">
+	<style>
+	</style>
+</head>
+<body>
+	<!-- 
+	... Contenido ... 
+	-->
+</body>
+</html>
+'''
+
+
+Lo que varía entre nuestras webs es el contenido que aparecerá de la etiqueta ''body''. Podríamos crear un fichero ''layout.blade.php'' con ese contenido.
+Cualquier página que queramos que tenga ese contenido básico usará una plantilla blade con la directiva ''@extends('layout')'' como primera línea (no hay que indicar el nombre completo de ''layout.blade.php'').
+
+El problema es que si lo hacemos así, todas nuestras páginas tendrían literalmente el mismo contenido. Para evitarlo se puede usar la directiva de Blade ''@yield('contenido')'' en la plantilla ''layout.blade.php'' que hemos definido anteriormente.
+
+'''
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>@yield('titulo')</title>
+</head>
+<body>
+@yield('contenido')
+</body>
+</html>
+'''
+
+
+Así ahora podríamos tener ficheros Blade (por ejemplo ''inicio.blade.php'') con este contenido:
+'''
+@extends('layout')
+
+{{-- Insertamos el contenido único de esta vista --}}
+
+@section('titulo', 'Inicio')
+
+@section('contenido')
+	<h1>Título</h1>
+@endsection
+'''
+
+Lo que hará Blade cuando haya que cargar una vista con el contenido de arriba será coger la plantilla ''layout.blade.php'' y usar el contenido de la sección ''titulo'' en lugar del ''@yield('titulo')'' y lo mismo con el ''@yield('contenido')''.
+
+Se usan en el ejemplo de arriba dos maneras diferentes, la primera indica el contenido en el propio ''@section'' y no necesita un ''@endsection()'' y también se muestra cómo escribir un comentario entre ''{{--'' y ''--}}''
+
+
+
+===== Ejercicio =====
+
+En nuestra web de hamburguesería se repite la misma cabecera en todas las páginas. Crea una plantilla ''layout.blade.php'' que contenga la página básica de la que heredarán el resto. Añádele si quieres un pie de página a la plantilla.
+
+La plantilla debe tener diversos ''yield'': 
+	* para el título
+	* para el contenido
+	* para el CSS propio de la página si lo necesita
+	* para el Javascript propio de la página si lo necesita
+
+**Nota**: El CSS común y el código Javascript común pueden agregarse a la propia plantilla sin necesitar un ''yield''.
+
+Modifica el resto de las páginas de nuestra web para que usen esta plantilla como base.
+
+
+
+====== 7-2 Estructuras de control ======
+
+Las plantillas Blade cuentan con un conjunto de estructuras de control que hacen posible extender la funcionalidad de nuestras vistas. Estas estructuras de control no están pensadas para modificar la lógica de negocio, sino la presentación de los datos (en un modelo MVC, las vistas sólo se deben encargar de presentar los datos de manera eficiente y atractiva).
+
+Por ejemplo, en nuestra hamburguesería tendremos una carta con un conjunto de hamburguesas. Este conjunto de hamburguesas puede variar con el tiempo o ser más o menos extenso o cambiar los ingredientes de algún plato, etc.
+
+Una manera de solucionarlo sería crear un array con los platos que existen en la empresa (lo ideal sería que esos datos los consiguiéramos desde una base de datos, evidentemente) y pasar ese array a la vista ''carta'' para que lo presente de manera correcta.
+
+
+===== Bucles foreach =====
+
+Para ello modificaremos nuestro controlador de rutas ''web.php''
+'''
+...
+
+Route::get('/carta', function () {
+    $platos = [
+        'Simple' => 'pan, carne, tomate, lechuga y cebolla con nuestra salsa especial.',
+        'Doble' => 'pan, doble de carne, tomate, lechuga y cebolla con nuestra salsa especial.',
+        'De pollo' => 'pan, carne de pollo a la plancha, lechuga, cebolla y salsa de mostaza y mayonesa.',
+        'Perrito caliente' => 'pan, salchicha, cebolla frita, salsa de curry y mango.',
+    ];
+
+
+    return view('carta', ['platos' => $platos]);
+    //return view('carta', compact('platos'));
+})->name('carta');
+
+...
+'''
+
+**Nota**: los parámetros que se pasan a las vistas han de ser un array asociativo (por ejemplo: ''['id' => 1, 'nombre'=>'Javier']''), por eso no podemos pasar directamente la variable ''$platos''. Podemos crear nosotros ese array asociativo o usar la función ''compact()'' que hace precisamente eso.
+
+
+Ahora en nuestro fichero ''carta.blade.php'' podríamos añadir un bloque de PHP con el código necesario para mostrar el contenido del array que le pasamos como parámetro.
+'''
+...
+
+<p>Disfruta de los productos más sabrosos. Nuestras hamburguesas y perritos.</p>
+
+<?php
+foreach ($platos as $plato => $ingredientes){
+	echo "<p><dfn>$plato</dfn>: $ingredientes</p>";
+}
+
+...
+'''
+
+Más cómodo podría ser usar directamente las estructuras de control que ofrece Blade:
+'''
+<p>Disfruta de los productos más sabrosos. Nuestras hamburguesas y perritos.</p>
+
+@foreach ($platos as $plato => $ingredientes)
+    <p><dfn>{{$plato}}</dfn>: {{$ingredientes}}</p>
+@endforeach
+
+'''
+
+
+**Nota**: si queremos crear los platos fuera de la definición de la ruta, podemos hacerlo, pero usando ''Route:view'' en lugar de ''Route::get'' u obtendremos un error de ''undefined variable $platos''.
+'''
+$platos = [
+	'Simple' => 'pan, carne, tomate, lechuga y cebolla con nuestra salsa especial.',
+	'Doble' => 'pan, doble de carne, tomate, lechuga y cebolla con nuestra salsa especial.',
+	'De pollo' => 'pan, carne de pollo a la plancha, lechuga, cebolla y salsa de mostaza y mayonesa.',
+	'Perrito caliente' => 'pan, salchicha, cebolla frita, salsa de curry y mango.',
+];
+
+Route::view('/carta', 'carta',compact('platos') )->name('carta');
+'''
+
+
+
+
+==== La variable $loop ====
+
+En un bucle con Blade se te genera automáticamente una variable ''$loop'' que podemos usar para saber si estamos en la primera iteración o la última, por ejemplo.
+ 
+'''
+@foreach ($users as $user)
+	@if ($loop->first)
+			This is the first iteration.
+	@endif
+	 
+	@if ($loop->last)
+			This is the last iteration.
+	@endif
+ 
+<p>This is user {{ $user->id }}</p>
+@endforeach
+'''
+
+Podemos ver el contenido simplemente imprimiéndolo en pantalla con un ''var_dump()''
+'''
+@foreach ($platos as $plato => $ingredientes)
+    <pre>{{var_dump($loop)}}</pre>
+@endforeach 
+'''
+
+
+En la primera vuelta del bucle nos imprimirá algo parecido a esto:
+'''
+object(stdClass)#331 (10) {
+  ["iteration"]=>  int(1)
+  ["index"]=>  int(0)
+  ["remaining"]=> int(3)
+  ["count"]=>  int(4)
+  ["first"]=>  bool(true)
+  ["last"]=>  bool(false)
+  ["odd"]=>  bool(true)
+  ["even"]=>  bool(false)
+  ["depth"]=>  int(1)
+  ["parent"]=>  NULL
+}
+'''
+
+
+===== Condicionales =====
+
+Exactamente igual que con los bucles también podemos usar condicionales en nuestras plantillas:
+
+'''
+@if ( count($platos) === 1 )
+	<p>Hay un único plato</p>
+@elseif ( count($platos) > 1 )
+	<p>Hay varios plato</p>
+@else
+	<p>No hay ningún plato</p>
+@endif
+'''
+
+
+En nuestro ejemplo podríamos tener algo así:
+'''
+@if ( $platos )
+    @foreach ($platos as $plato => $ingredientes)
+        <p><dfn>{{$plato}}</dfn>: {{$ingredientes}}</p>
+    @endforeach
+@else
+    <p>No hay ningún plato en la carta.</p>
+@endif
+'''
+
+
+
+===== Bucles forelse =====
+
+Como nuestro caso es bastante común, en Blade tenemos una estructura de bucles que permite combinar un //if// con un //foreach//, de modo que si hay elementos que mostrar se mostrarán como en el //foreach// y si no hay elementos se mostrarán como en el //else// del condicional. 
+
+'''
+@forelse ($platos as $plato => $ingredientes)
+    <p><dfn>{{$plato}}</dfn>: {{$ingredientes}}</p>
+@empty
+    <p>No hay ningún plato en la carta.</p>
+@endforelse
+'''
+
+
+
+===== Otras estructuras =====
+
+'''
+
+@for()
+@endfor
+
+@while()
+@endwhile
+
+@switch()
+@endswitch
+'''
+
+
+
+== ^{ocultar} ==
+
+===== Autenticación =====
+
+También tenemos directivas para comprobar si el usuario está autenticado o no. 
+'''
+@auth
+// The user is authenticated...
+@endauth
+ 
+@guest
+// The user is not authenticated...
+@endguest
+'''
+
+
+== ^{finocultar} ==

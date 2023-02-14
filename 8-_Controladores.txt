@@ -1,0 +1,220 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-03T12:11:45+01:00
+
+====== 8- Controladores ======
+
+== ^{ocultar} ==
+Oculto
+
+== ^{finocultar} ==
+
+En una aplicación que use el patrón de arquitectura MVC (modelo-vista-controlador), los controladores son una parte fundamental., pues se encarga de recibir las peticiones de la vista que corresponda y actualizará el modelo de datos que se esté usando.
+
+{{./pasted_image.png}}
+
+Por tanto no deberíamos incluir los datos que vamos a manejar en el fichero de rutas ''web.php'', sino en nuestro propio controlador, personalizado a nuestra app.
+
+
+
+====== Crear un controlador ======
+
+Si nos metemos en el contenedor podemos ver la configuración del entorno de Laravel ejecutando un ''php artisan about''
+'''
+docker exec -it app_laravel.test_1 /bin/bash
+php artisan about
+'''
+
+
+O sin meternos en el contenedor:
+''docker exec -it app_laravel.test_1 php artisan about''
+
+Si ejecutamos un ''php artisan'', podremos ver las opciones disponibles en artisan para gestionar nuestro proyecto Laravel.
+
+{{./pasted_image001.png}}
+
+Ya hemos visto que con ''php artisan routes:list''  podemos ver todas las rutas definidas en nuestro proyecto.
+La que nos interesa es la opción de ''make:controller'' que indica que sirve para //Create a new controller class//.
+
+Se puede ver una ayuda con las opciones que ofrece ejecutando:
+''php artisan make:controller CartaController -h''
+
+Si creamos un controlador para manejar nuestra carta de productos con ''php artisan make:controller CartaController'', se nos creará una nueva clase ''CartaController'' en el directorio ''app/Http/Controllers''.
+
+Si vemos el archivo veremos que es una clase de este tipo completamente vacía:
+''class CartaController extends Controller {}''
+
+Esto por defecto tiene escasa utilidad simplemente nos lo crea vacío para que lo rellenemos como queramos. 
+Esto es flexible, pero una de las ventajas de usar un framework de desarrollo es precisamente que nos estandarice el código y organización de proyecto. Vamos a mejorarlo.
+
+
+===== Single action controllers =====
+
+Eliminamos el fichero y volvemos a crearlo con la opción ''-i''.
+''php artisan make:controller CartaController -i'' nos creará el mismo fichero, pero incluyendo un método ''__invoke()'' para manejar las rutas e invocar a las vistas necesarias.
+
+En nuestro ''CartaController.php'' añadiremos el código necesario para gestionar esa ruta.
+
+'''
+public function __invoke(Request $request){
+
+    $platos = [
+        'Simple' => 'pan, carne, tomate, lechuga y cebolla con nuestra salsa especial.',
+        'Doble' => 'pan, doble de carne, tomate, lechuga y cebolla con nuestra salsa especial.',
+        'De pollo' => 'pan, carne de pollo a la plancha, lechuga, cebolla y salsa de mostaza y mayonesa.',
+        'Perrito caliente' => 'pan, salchicha, cebolla frita, salsa de curry y mango.',
+    ];
+
+
+    return view('carta', ['platos' => $platos]);
+}
+'''
+
+
+Ahora podemos volver a nuestro fichero de rutas ''web.php'' y añadir una ruta que sea gestionada por nuestro controlador.
+'''
+use App\Http\Controllers\CartaController;
+Route::get('/carta', CartaController::class)->name('carta.index');
+'''
+
+También podríamos haber indicado la ruta completa hacia nuestro controlador:
+''Route::get('/carta',App\Http\Controllers\CartaController::class)->name('carta.index'); //llama al método __invoke del controlador CartaController''
+
+**Nota**: Ahora podemos quitar la anterior rutaa ''/carta'' que teníamos de antes ''Route::get('/carta', function (){...}''
+
+De esta manera conseguimos que el archivo de rutas quede como debería quedar: definiendo sólo rutas.
+
+Podemos comprobar el cambio realizado ejecutando de nuevo ''php artisan routes:list''
+
+El controlador que hemos creado es suficiente si sólo vamos a tener que gestionar una acción con nuestro controlador.
+
+
+===== Crear un controlador de recurso =====
+
+El controlador anterior sólo tenía el método ''__invoke'' y está pensado para gestionar las llamadas que provengan de una única ruta. Esto puede ser suficiente en nuestro caso, pero no siempre será así.
+
+Supongamos que queremos que se puedan gestionar los platos que aparecen en la carta. En este caso cada //plato// será un //recurso// que se debe gestionar: listar, crear, eliminar, modificar, etc. Es decir, las típicas CRUD.
+No nos valdrá únicamente un controlador con un método ''__invoke()'', habrá que crear un controlador de recurso.
+
+Por tanto, empezaremos eliminando el controlador que ya tenemos creado y también tendremos que quitar del fichero de rutas ''web.php'' la línea que añadimos:
+''Route::get('/carta',App\Http\Controllers\CartaController::class)->name('carta.index');''
+
+Ahora podremos crear el controlador de recurso con ''-r'':
+''php artisan make:controller CartaController -r''
+
+Si nos vamos al fichero ''CartaController.php'', veremos que tenemos el esqueleto de nuevos métodos para ser usados.
+
+**Nota**: En docker el propietario será ''root:root'', aunque esto no nos dará problemas para ejecutar el fichero, sí deberíamos cambiarlo a nuestro usuario para poder editarlo con comodidad.
+
+En la tabla de abajo se muestran los nombres, URI y verbos estandarizados que se esperan encontrar en Laravel (y en una API REST) para gestionar un recurso, en este caso la carta de la hamburguesería. Evidentemente no es obligatorio seguir estas indicaciones, pero es una buena idea hacerlo.
+
+| Verbo    <| URI                 | Acción (método) | Nombre de ruta |
+|:----------|:--------------------|:----------------|:---------------|
+| GET       | /carta              | index           | carta.index    |
+| GET       | /carta/{plato}      | show            | carta.show     |
+| GET       | /carta/create       | create          | carta.create   |
+| GET       | /carta/{plato}/edit | edit            | carta.edit     |
+| POST      | /carta              | store           | carta.store    |
+| PUT/PATCH | /carta/{plato}      | update          | carta.update   |
+| DELETE    | /carta/{plato}      | destroy         | carta.destroy  |
+
+
+'''
+Tabla con verbos, URI, Acción y nombre de ruta esperados
++-----------+---------------------+-----------------+----------------+
+| Verbo     | URI                 | Acción (método) | Nombre de ruta |
++===========+=====================+=================+================+
+| GET       | /carta              | index           | carta.index    |
++-----------+---------------------+-----------------+----------------+
+| GET       | /carta/{plato}      | show            | carta.show     |
++-----------+---------------------+-----------------+----------------+
+| GET       | /carta/create       | create          | carta.create   |
++-----------+---------------------+-----------------+----------------+
+| GET       | /carta/{plato}/edit | edit            | carta.edit     |
++-----------+---------------------+-----------------+----------------+
+| POST      | /carta              | store           | carta.store    |
++-----------+---------------------+-----------------+----------------+
+| PUT/PATCH | /carta/{plato}      | update          | carta.update   |
++-----------+---------------------+-----------------+----------------+
+| DELETE    | /carta/{plato}      | destroy         | carta.destroy  |
++-----------+---------------------+-----------------+----------------+
+'''
+
+
+Así, por ejemplo, si recibimos una petición por el método GET a la ruta ''/carta'', se deberá mostrar un listado de todos los platos de la carta y se invocará al método ''index()''.
+Si se recibe una petición a ''/carta/create'' usando el método GET, se invocará el método ''create()'' que mostrará una vista con un formulario que servirá para crear un nuevo plato en la aplicación.
+Si se recibe una petición a ''/carta'' usando el método POST, se invocará el método ''store()'' que servirá para almacenar en la base de datos un plato (creado previamente en el formulario mostrador por el método ''create()'').
+Si se recibe una petición a ''/carta/{plato}'' usando el método GET, se invocará el método ''show()'' que mostrará una vista con información detallada de un plato concreto.
+Etcétera.
+
+En nuestro caso, la funcionalidad que necesitamos es la de mostrar un listado con los platos y por lo tanto tendremos que definir el código del método ''index()'' en el controlador y crear la ruta ''carta.index'' en el fichero de rutas.
+
+En el fichero de rutas ''web.php'' indicaremos el método que queremos usar:
+''Route::get('/carta',[App\Http\Controllers\CartaController::class,'index'])->name('carta.index'); ''
+
+Y evidentemente en el fichero del controlador CartaController tendremos que modificar el método ''index()'':
+'''
+public function index(){
+    $platos = [
+        'Simple' => 'pan, carne, tomate, lechuga y cebolla con nuestra salsa especial.',
+        'Doble' => 'pan, doble de carne, tomate, lechuga y cebolla con nuestra salsa especial.',
+        'De pollo' => 'pan, carne de pollo a la plancha, lechuga, cebolla y salsa de mostaza y mayonesa.',
+        'Perrito caliente' => 'pan, salchicha, cebolla frita, salsa de curry y mango.',
+    ];
+
+
+    return view('carta', ['platos' => $platos]);
+}
+'''
+
+
+==== Generar rápidamente las siete rutas ====
+
+En el fichero de rutas ''web.php'' podemos generar rápidamente todas las rutas para gestionar el recurso así:
+'''
+use App\Http\Controllers\CartaController;
+Route::resource('/carta', CartaController::class);
+'''
+
+
+Podemos decidir qué rutas queremos que se nos creen con un array:
+''Route::resource('/carta', CartaController::class)->only(['index','create','show']);''
+
+Evidentemente ''CartaController'' tiene que ser un controlador de recursos y las rutas generadas son las que aparecen en la tabla de arriba. Podemos verlas con un ''php artisan route:list''
+
+
+===== Importante: controladores en fichero de rutas =====
+
+Laravel ha ido evolucionando con el tiempo y se ha cambiado la manera en la que se hacen ciertas cosas. Ahora, si queremos que el fichero de rutas sea capaz de encontrar el controlador tenemos que indicarlo explícitamente.
+
+Estas son varias maneras de indicar que queremos usar el controlador ''CartaController'' (sólo hay que elegir una de ellas, aunque la recomendada es la primera).
+
+'''
+use App\Http\Controllers\CartaController;
+Route::get('/carta', [CartaController::class, 'index']);
+
+Route::get('/carta', [App\Http\Controllers\CartaController::class, 'index']);
+
+Route::get('/carta', ['App\Http\Controllers\CartaController','index']);
+'''
+
+
+
+
+===== Crear un controlador para API =====
+
+Si lo que queremos es crear una API, los métodos  que nos muestran vistas con formularios no tienen sentido (''create()'' y ''edit()'', por ejemplo). Por tanto podemos eliminarlos del controlador de recurso o bien crear un controlador para API ejecutando:
+''php artisan make:controller CartaController --api''
+
+Y creamos las rutas directamente con
+'''
+use App\Http\Controllers\CartaController;
+Route::apiResource('/carta', CartaController::class);
+'''
+
+
+**Nota**: sería buena idea separar las llamadas a la API si así lo queremos.
+''php artisan make:controller API/CartaController --api''
+
+
+

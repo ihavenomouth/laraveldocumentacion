@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-13T16:04:23+01:00
+
+====== Otras cosas ======
+Creado lunes 13 febrero 2023
+
+
+
+===== Volúmenes persistentes =====
+
+Ejecutar ''sail down'' eliminará los contenedores, pero mantendrá los volúmenes (puedes verlo con un ''docker volume ls''), de manera que se mantendrán las bases de datos (por ejemplo) aunque se eliminen los contenedores que la usan. Al hacer un ''sail up'' se podrá seguir usando la misma base de datos anterior puesto que nunca fue eliminada.
+Para eliminar contenedores y los volúmenes asociados hay que ejecutar un ''sail down -v''.

@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-14T14:53:14+01:00
+
+====== CRUD ======
+
+Vamos a generar un sistema CRUD que nos permita gestionar enlaces.
+
+Lo más sencillo va a ser comenzar con la pantalla de //crear enlace//.

@@ -1,0 +1,344 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-13T11:11:28+01:00
+
+====== Laravel Breeze ======
+Creado lunes 13 febrero 2023
+
+Laravel ofrece varios paquetes para autenticaciones:
+	* Breeze (incluye formularios de login, registro, reseteo de clave, verificación de e-mail, confirmación de password, etc. + Plantillas Blade con Tailwind CSS
+	* JetStream (utiliza también Sanctum para las API)
+	* Fortify
+
+De los tres, el más directo y sencillo es Breeze. Los otros están pensados para aplicaciones que al escalar requieran muchos recursos y son más complejos. Estos tres se basan en la misma idea: un usuario se autentica a través de un formulario, si es correcta en el servidor se guarda algo que indique que se ha iniciado sesión correctamente y se genera un id que se manda como una cookie al cliente, esta cookie se mandará en las subsiguientes peticiones.
+
+Si estamos construyendo una API, esta aproximación no es correcta, por ejemplo puede que no haya un navegador implicado y que las peticiones a la API provengan de otro servicio. Lo que se hará será mandar una clave de autenticación (un API Token) con cada petición y nuestra aplicación tendrá que validar esa clave de autenticación que estará asociada a un cliente concreto.
+Los dos paquetes que permiten esto son Passport (que permite OAuth2.0) y Sanctum (que simplifica el uso de API Tokens). Si planeas hacer una SPA lo más idóneo es usar Sanctum.
+
+
+====== Laravel Breeze ======
+
+'''
+./vendor/bin/sail composer require laravel/breeze --dev
+./vendor/bin/sail php artisan breeze:install blade
+'''
+
+
+Si queremos que se incluya el modo oscuro automáticamente con ''php artisan breeze:install --dark'' 
+
+Generamos automáticamente las tablas que Breeze utiliza por defecto
+'''
+./vendor/bin/sail php artisan migrate
+'''
+
+
+Si quieres, puedes ir a ''database/migrations'' y los ficheros que hay ahí definen las tablas que se van a crear en el método ''up()'' junto con los atributos. Por ejemplo, se creará la tabla ''users'':
+'''
+Schema::create('users', function (Blueprint $table) {
+	$table->id();
+	$table->string('name');
+	$table->string('email')->unique();
+	$table->timestamp('email_verified_at')->nullable();
+	$table->string('password');
+	$table->rememberToken();
+	$table->timestamps();
+});
+'''
+
+
+
+Este paso no es necesario si estamos usando una versión actualizada de Laravel: ejecutar para compilar los assets del frontend (parece ser que con Vite, que es lo que usa Laravel ahora, no es necesario).
+'''
+npm install
+npm run dev
+'''
+
+
+En el fichero ''routes/auth.php'' se nos ha generado la ruta [[/login|''/login'']] y ''/register''. Este fichero se incluye en el fichero de rutas ''web.php''.
+
+
+===== Flujo del login =====
+
+Veamos el flujo de //login// usando Laravel Breeze, se empieza realizando una petición GET a la ruta ''/login''. 
+
+Vayamos al fichero de definición de rutas ''web.php''. Breeze nos ha incluido una línea para incluir el controlador de autenticación ''ProfileController'' y otra para incluir un segundo fichero de definición de rutas llamado ''auth.php'' (que está en el mismo directorio):
+'''
+use App\Http\Controllers\ProfileController;
+...
+require __DIR__.'/auth.php';
+'''
+
+En el fichero ''auth.php'' aparecen definidas las rutas que tendrá disponible un usuario autenticado y sin autenticar. En nuestro caso, el usuario aún no se ha autenticado, por lo que el middleware que se usará será ''guest'':
+'''
+Route::middleware('guest')->group(function () {
+	Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
+	Route::post('register', [RegisteredUserController::class, 'store']);
+	Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
+	Route::post('login', [AuthenticatedSessionController::class, 'store']);
+	Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+	Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+	Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+	Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store');
+});
+'''
+
+Se puede ver que al acceder mediante GET se usa el método ''create'' del controlador ''AuthenticatedSessionController'' que está en ''app/Http/Controllers/Auth''. El método ''create'' es este:
+'''
+public function create(): View
+{
+	return view('auth.login');
+}
+'''
+
+
+Simplemente devuelve una vista. Las vistas se encuentan en ''resources/views'', pero como se llama ''auth.login'', el punto indica que la vista se llama ''login.blade.php'' dentro del subdirectorio ''auth''.
+
+En resumen, vamos a ''resources/views/auth/login.blade.php'' para ver la plantilla Blade que muestra el formulario de login. Breeze utiliza componentes Blade y Tailwind CSS, por lo que probablemente nos resulte algo complicado de entender, pero estas son las ideas básicas.
+	* Necesitamos un campo para el e-mail, otro para el password, un checkbox para que nos recuerde y un botón de submit.
+	* El formulario tendrá este method y ruta: ''<form method="POST" action="{{ route('login') }}">''
+	* Se debe incluir por tanto dentro del formulario para que Laravel acepte la petición POST:  ''@csrf''
+	* El campo email tendrá ''id="email" type="email" name="email" required''
+	* El campo password tendrá ''id="password" type="password" name="password" required''
+	* El campo recuérdame tendrá: ''id="remember_me" type="checkbox" name="remember"''
+
+Ejemplo de formulario:
+'''
+    <form method="POST" action="{{ route('login') }}">
+        @csrf
+
+        <!-- Email Address -->
+        <div>
+            <label for="email">E-Mail</label>
+            <input id="email" type="email" name="email" required autofocus autocomplete="username" />
+        </div>
+
+        <!-- Password -->
+        <div>
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" required autocomplete="current-password" />
+        </div>
+
+        <!-- Remember Me -->
+        <div>
+            <label for="remember_me">
+                <input id="remember_me" type="checkbox" name="remember">
+                <span>Recuérdame</span>
+            </label>
+        </div>
+
+        <div>
+            @if (Route::has('password.request'))
+                <a href="{{ route('password.request') }}">¿Olvidó su password?</a>
+            @endif
+
+            <input type="submit" value="Entrar">
+        </div>
+    </form>
+'''
+
+Cuando se pulsa el botón de submit, se realiza una petición con los datos de login a la ruta ''/login'' pero en esta ocasión usando el método POST. De nuevo nos vamos al fichero de rutas ''auth.php'' y aí tenemos una llamada al método ''store'':
+''Route::post('login', [AuthenticatedSessionController::class, 'store']);''
+
+Es decir, se va a ejecutar el método ''store'' definido en el controlador ''AuthenticatedSessionController''
+'''
+public function store(LoginRequest $request): RedirectResponse
+{
+	$request->authenticate();
+	$request->session()->regenerate();
+	return redirect()->intended(RouteServiceProvider::HOME);
+}
+'''
+
+ 
+Lo que hace el código de arriba es tratar de autenticar al usuario, regenerar la sesión del mismo y devolver al usuario a la pantalla de inicio de la aplicación.
+
+
+
+===== Flujo de registro =====
+
+El flujo de la ruta de registro es parecida a la de login, por lo que podemos ir más rápido. El controlador es ''RegisteredUserController'' y el método es ''create''. Eso nos devuelve la vista en ''resources/views/auth/register.blade.php''.
+
+Las ideas básicas son estas:
+	* Necesitamos un campo para el nombre, otro para el e-mail, otros dos para el password (uno de confirmación) y un botón de submit.
+	* El formulario tendrá este method y ruta: ''<form method="POST" action="{{ route('register') }}">''
+	* Se debe incluir por tanto dentro del formulario para que Laravel acepte la petición POST:  ''@csrf''
+	* El campo nombre tendrá ''id="email" type="email" name="email" required''
+	* El campo email tendrá ''id="email" type="email" name="email" required''
+	* El campo password tendrá ''id="password" type="password" name="password" required''
+	* El campo confirmar password tendrá ''id="password_confirmation" type="password" name="password_confirmation" required'' 
+	* El campo recuérdame tendrá: ''id="remember_me" type="checkbox" name="remember"''
+
+Ejemplo de formulario:
+'''
+    <form method="POST" action="{{ route('register') }}">
+        @csrf
+
+        <!-- Name -->
+        <div>
+            <label for="name">Nombre</label>
+            <input id="name" type="text" name="name" required autofocus autocomplete="name" />
+        </div>
+
+        <!-- Email Address -->
+        <div>
+            <label for="email">E-Mail</label>
+            <input id="email" type="email" name="email" required autofocus autocomplete="username" />
+        </div>
+
+        <!-- Password -->
+        <div>
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" required autocomplete="new-password" />
+        </div>
+
+        <!-- Password confirmation -->
+        <div>
+            <label for="password_confirmation">Confirmar password</label>
+            <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" />
+        </div>
+
+        <div>
+            <a href="{{ route('login') }}">¿Ya está registrado?</a>
+            <input type="submit" value="Registrarse">
+        </div>
+    </form>
+'''
+
+Al pulsar el  botón de submit, se genera una llamada al método ''store'' del controlador ''RegisteredUserController''. El método es similar al de abajo. Recoge los datos de la petición y los valida (por ejemplo que el nombre no puede tener más de 255 caracteres). Luego usa el modelo definido en ''app/Models/User.php'' con esos datos, de manera que se crea un nuevo usuario en el modelo (y por tanto en la base de datos), manda un evento de usuario registrado, luego inicia sesión con ese usuario y lo redirige a la pantalla de inicio de nuestra aplicación.
+'''
+public function store(Request $request): RedirectResponse
+{
+	$request->validate([
+		'name' => ['required', 'string', 'max:255'],
+		'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+		'password' => ['required', 'confirmed', Rules\Password::defaults()],
+	]);
+
+	$user = User::create([
+		'name' => $request->name,
+		'email' => $request->email,
+		'password' => Hash::make($request->password),
+	]);
+
+	event(new Registered($user));
+	Auth::login($user);
+	return redirect(RouteServiceProvider::HOME);
+}
+'''
+
+
+
+===== Otros flujos =====
+
+También están definidos los flujos de reset password, E-mail verification y Password confirmation.
+
+
+
+
+
+===== Mostrar unas etiquetas u otras en función de la autenticación =====
+
+En ocasiones querremos que se nos muestren unas vistas u otras en función de si estamos o no autenticados.
+
+Como ejemplo de uso, podemos ver ''welcome.blade.php'', en el código de abajo se puede ver que se comprueba si existe la ruta ''login'' con un condicional de Blade. Dentro si estamos autenticados se muestra un enlace a la ruta [[/dashboard|''/dashboard'']] y si no, se muestra un enlace a la ruta de  ''login'':
+'''
+        <div class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center py-4 sm:pt-0">
+            @if (Route::has('login'))
+                <div class="hidden fixed top-0 right-0 px-6 py-4 sm:block">
+                    @auth
+                        <a href="{{ url('/dashboard') }}" class="text-sm text-gray-700 dark:text-gray-500 underline">Dashboard</a>
+                    @else
+                        <a href="{{ route('login') }}" class="text-sm text-gray-700 dark:text-gray-500 underline">Log in</a>
+
+                        @if (Route::has('register'))
+                            <a href="{{ route('register') }}" class="ml-4 text-sm text-gray-700 dark:text-gray-500 underline">Register</a>
+                        @endif
+                    @endauth
+                </div>
+            @endif
+'''
+
+
+===== Ejemplo: página con secretos =====
+
+Imaginemos que queremos crear una página que sólo se accesible si estamos autenticados. Esto se puede usar con el middleware ''auth'' en el fichero de rutas ''web.php'':
+'''
+Route::middleware('auth')->get('/secreto', function () {
+    return view('secreto');
+});
+'''
+
+
+Cualquier intento de acceder a ''/secreto'' sin estar autenticado será redirigido a la ruta ''/login''
+
+Sin embargo, es posible que queramos que se pueda acceder y simplemente mostrar un contenido y otro en función de si estamos autenticados o no. En ese caso prescindiremos del middleware ''auth''.
+'''
+Route::get('/secreto', function () {
+	return view('secreto');
+});
+'''
+
+
+Y en la plantilla Blade podríamos tener algo así:
+'''
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+
+        <title>Parte secreta</title>
+        <link rel="stylesheet" href="https://fonts.bunny.net/css2?family=Nunito:wght@400;600;700&display=swap">
+    </head>
+    <body class="font-sans antialiased">
+    
+    <h1>Parte secreta</h1>
+  
+  	 @auth
+  	 	<h2>Contenido para usuarios autenticados</h2>
+  	 	<p>Este contenido sólo está disponible para usuarios autenticados e incluye secretos.</p>
+  	 	<p>Bisbisbisbis</p>
+    	<p>Vuelva al inicio <a href="{{ URL('/') }}">Inicio</a></p>
+
+    @else
+    	<h2>Contenido para usuarios no autenticados</h2>
+    	<p>Este contenido es el que aparece para usuarios que no estén autenticados. Nada de secretos.</p>
+    	
+    	<p>Inicie sesión: <a href="{{ route('login') }}">Log in</a>
+
+       @if (Route::has('register'))
+         o regístrese si no tiene una cuenta <a href="{{ route('register') }}">Register</a>
+       </p>
+      @endif
+   @endauth
+
+    </body>
+</html>
+'''
+
+
+**Nota**: En la cabecera se ha incluido esto:
+ ''<meta name="csrf-token" content="{{ csrf_token() }}">''
+Es para indicar el token ''csfr'' que sería necesario incluir en la cabecera de una llamda AJAX. En el ejemplo de arriba no es necesario (porque no hay llamadas AJAX), pero podría serlo en otros. Si fuera necesario, habría que incluir en la cabecera de la llamda algo parecido a esto:
+'''X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')''
+
+
+
+
+====== Generar nuestro propio modelo ======
+
+Generamos un modelo:
+'''
+./vendor/bin/sail php artisan make:model -mrc Chirp
+'''
+
+
+**Nota**: con la opción ''-mrc'' se nos generará:
+	* ''-m'' : la migración que creará las tablas en nuestra base de datos
+	* ''-rc'' : un controlador de tipo recurso que gestionará las peticiones
+	* El propio modelo de Eloquent
+
+
+
+

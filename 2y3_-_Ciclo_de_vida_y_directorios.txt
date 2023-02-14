@@ -1,0 +1,88 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-18T08:55:50+01:00
+
+====== 2- Ciclo de vida de una petición ======
+
+Cuando accedemos a ''localhost'', se produce una petición al directorio raíz del proyecto (''/'')  a través de la interfaz web.
+
+El punto de entrada de la aplicación es ''public/index.php'' y todas las peticiones son redirigidas allí por el servidor web.
+Si vemos el código de ese fichero, veremos que lo que hace es básicamente arrancar Laravel y redirigir las peticiones al kernel HTTP que las recibirá y las enviará al //middleware// ''web'' que procesa las rutas recibidas por la interfaz web.
+
+Las peticiones, por defecto, son procesadas en el fichero ''routes/web.php'', que contiene estas líneas.
+'''
+Route::get('/', function () {
+	return view('welcome');
+});
+'''
+
+Lo que indica es que cuando se accede a la raíz del proyecto, es decir a ''/'', se devolverá la vista llamada ''welcome''.
+Si vamos a ''resources/views'' veremos un fichero llamado ''welcome.blade.php'' que precisamente define la vista que se va a enviar.
+
+Esta vista utiliza un sistema de plantillas llamado Blade. Este sistema de plantillas no es obligatorio utilizarlo, aunque es interesante conocerlo y está muy integrado en el ecosistema de Laravel.
+
+
+
+===== Primera prueba con las rutas =====
+
+Modificamos el fichero ''routes/web.php'' y añadiremos una nueva ruta:
+'''
+Route::get('/prueba', function () {
+	return view('prueba');
+});
+'''
+
+Ahora, en el directorio ''resources/views'' vamos a crear el siguiente fichero llamado ''prueba.php'':
+'''
+<html>
+<head>
+<title>Probando las rutas</title>
+<meta charset="UTF-8">
+</head>
+<body>
+<h1>Introducción</h1>
+<p>Esta es la primera página que creamos en Laravel.</p>
+<p>Queremos que se cargue cuando se acceda a <code>localhost/prueba</code>.</p>
+</body>
+</html>
+'''
+
+Finalmente podemos probar que todo ha ido bien cargando en el navegador ''localhost/prueba'' y debería verse la página php que acabamos de crear.
+
+
+
+====== 3- Directorios ======
+
+Una breve reseña de los ficheros principales del directorio principal de nuestra aplicación por orden alfabético.
+	* ''app/'' → contendrá los ficheros básicos de nuestra aplicación
+	* ''bootstrap/'' → ficheros para iniciar el framework Laravel. También ficheros de cache
+	* ''config/''  → contiene ficheros de configuración
+	* ''database/'' → todo lo relacionado con las bases de datos (migraciones, factorías...)
+	* ''lang/'' → los ficheros de idioma y traducciones de la aplicación
+	* ''public/'' → contiene el index.php que será el punto de entrada de las peticiones. También alojará nuestros ficheros js, css e imágenes
+	* ''resources/'' → contiene las vistas, así como los js o css sin compilar (porque hemos usado typescript, SASS o sin minificar)
+	* ''routes/'' → las rutas definidas en la aplicación. 
+	* ''storage/'' → contiene los logs, plantillas blade generadas, sesiones, ...
+	* ''tests/'' → contiene test unitarios creados por ejemplo con PHPUnit
+	* ''vendor/'' → dependencias del composer
+
+
+Por ejemplo, si queremos crear una vista, la crearemos en ''resources/views''. Si queremos definir una ruta lo haremos en el directorio ''routes'', etc.
+
+Es interesante tener en cuenta que **la única carpeta accesible desde el cliente es la de ''public''**, por tanto si queremos usar ficheros css, será ahí donde debemos colocarlos (si no hay que compilarlos con SASS o similares). Por ejemplo, si creamos un fichero en ''public/css/estilos.css'' con este contenido:
+'''
+*{
+	box-sizing: border-box;
+}
+
+body{
+	background-color: #345;
+	color: #abc;
+	font-family: 'Nunito', sans-serif;
+}
+'''
+
+De hecho,  en nuestros enlaces, la ruta absoluta empezará desde la carpeta ''public''. Por lo que enlazaremos en una vista como:
+''<link rel="stylesheet" href="/css/estilos.css">''
+
+

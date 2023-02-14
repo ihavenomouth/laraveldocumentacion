@@ -1,0 +1,121 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-18T11:12:05+01:00
+
+====== 6- Routing (III) ======
+
+
+
+== ^{ocultar} ==
+
+===== Limites =====
+
+__TODO: las pruebas que he hecho no funcionan__
+
+Laravel permite establecer límites en las llamadas que se pueden hacer. Al igual que la restricciones globales para los parámetros de las rutas, en App\Providers\RouteServiceProvider podremos establecer estos límites.
+
+Por defecto tenemos algo parecido a esto:
+	'''
+	/**
+	 * Configure the rate limiters for the application.
+	 *
+	 * @return void
+	 */
+	protected function configureRateLimiting()
+	{
+		RateLimiter::for('api', function (Request $request) {
+			return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+		});
+	}
+	'''
+
+
+Lo que limita a 60 peticiones por minuto, usuario e ip y le asgna el nombre ''api''. Podemos limitarlo a 1000 peticiones por minuto (y le asignamos otro nombre, en este caso ''global'' como podría haber sido ''limitaciones'' o cualquier otra cosa). Si se superan estos límites se devolverá un código de error HTTP 429. También podemos establecer nuestra propia respuesta si así lo queremos.
+
+'''
+RateLimiter::for('global', function (Request $request) {
+	//return Limit::perMinute(1000);
+	
+	return Limit::perMinute(1000)->response(function (Request $request, array $headers) {
+		return response('Custom response...', 429, $headers);
+	});
+});
+'''
+
+== ^{finocultar} ==
+
+
+
+===== Form method spoofing =====
+
+**Nota:** //spoof// se puede traducir como engaño o treta.
+
+Por defecto, los formularios HTML no soportan verbos como PUT, PATCH o DELETE y en Laravel el método POST también nos dará problemas para evitar problemas causados por culpa de un posible ataque CSRF.
+
+Para más información: https://laravel.com/docs/9.x/csrf
+
+==== Usando Blade ====
+Si usamos plantillas Blade podemos usar este código:
+'''
+<form action="/example" method="POST">
+	<input type="hidden" name="_method" value="PUT">
+	<input type="hidden" name="_token" value="{{ csrf_token() }}">
+</form>
+'''
+
+O este otro:
+'''
+<form action="/example" method="POST">
+	@method('PUT')
+	@csrf
+</form>
+'''
+
+Esto nos permite enviar la información con el método que está definido en el campo ''_method'' en lugar de con el ''method'' del formuario.
+
+
+==== Sin usar Blade ====
+
+Si vamos a usar PHP directamente sin usar una plantilla Blade, podemos usar un código como este para realizar la petición POST (o PUT o DELETE o PATCH).
+'''
+<form action="/servidor" method="POST">
+	<!-- <input type="hidden" name="_method" value="PUT"> -->
+	<input type="hidden" name="_token" value="<?php echo csrf_token()?>">
+	<label for="txtDato">Dato:</label><br>
+	<input type="text" name="txtDato" id="txtDato"><br>
+	<input type="submit" value="Enviar">
+</form>
+'''
+
+
+Evidentemente en la ruta se debe definir el método de escucha ''post()'':
+'''
+Route::post('/servidor', function () {
+	return view('servidor' );
+});
+'''
+
+
+
+
+En la vista ''servidor'' operamos como de costumbre:
+'''
+<?php
+$d = $_POST["txtDato"];
+echo "<p>El dato encontrado es: $d</p>";
+?>
+'''
+
+
+**Importante**: si el método establecido en ''_method'' es PUT, por ejemplo, la ruta debe usar el método ''put()'', pero en la vista se recuperarán los datos con el array ''$_POST[]'' (quedando por tanto el ejemplo igual que en el ejemplo del post). 
+
+
+
+
+===== Cache de rutas =====
+Durante el despliegue, cuando ya hayamos terminado y no se vayan a generar más rutas, podemos cachearlas para acelerar el acceso ejecutando ''php artisan route:cache''
+
+Pero es importante que tengamos en cuenta que si añadimos alguna ruta, tendremos que volver a generar la cache. Por eso sólo lo debemos usar durante el despliegue y nunca durante el desarrollo.
+
+Con ''php artisan route:clear'' limpiaremos la cache.
+

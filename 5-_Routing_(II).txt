@@ -1,0 +1,240 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-18T09:39:35+01:00
+
+
+====== 5- Routing (II) ======
+
+
+===== Parámetros en las rutas =====
+
+En una API de tipo REST se suelen mandar las peticiones a través de la estructura de la URI a la que se accede, por ejemplo, si quisiéramos obtener información referente al usuario con id ''5'', podríamos acceder a ''http://localhost/usuario/5''
+Si quisiéramos acceder a los datos del usuario ''23'', accederemos a ''http://localhost/usuario/23''
+
+En Laravel podemos conseguir ese comportamiento colocando el parámetro entre llaves y usándolo en la función:
+'''
+Route::get('/usuario/{id}', function ($id) {
+	$mote=["El largo", "El oreja", "El cabesa", "El gordo"];
+	$mo = $mote[ $id%4 ];
+	return "<p>Al usuario $id le corresponde el mote $mo</p>";
+});
+'''
+
+
+¿Y si necesitásemos más parámetros? Podemos repetir el mecanismo, por ejemplo:
+'''
+Route::get('/usuario/{id}/nombre/{nombre}', function ($id, $nombre) {
+	$nombres=["Javier", "Carlos", "Juan", "David"];
+	$nom = $nombres[ $id%4 ];
+	$resultado = (strtoupper($nom) == strtoupper($nombre)) ? 'acertado' : 'fallado'; 
+	return "<p>Ha fallado el nombre del usuario $i (era $nom).</p>";
+});
+'''
+
+Al acceder a esta URL ''http://localhost/usuario/4/nombre/Paco'' se nos indicará este mensaje:
+''Ha fallado el nombre del usuario 4 (era Javier).''
+
+**Nota**: Si se tienen ambas rutas definidas, se usará una u otra en función de la URI a la que accedamos.
+
+
+
+===== Parámetros opcionales =====
+
+Podemos establecer parámetros opcionales en las rutas. Tenemos que indicarlo con el símbolo de ''?'' y asignando un valor por defecto (que pdoría ser ''null'' si así lo necesitamos).
+'''
+Route::get('/espar/{numero?}', function ($numero = 55) {
+	$paridad = ($numero%2==0)?'es par': 'es impar';
+	return "<p>El número $numero " . $paridad. '.</p>';
+});
+'''
+
+
+También podríamos haber devuelto una vista:
+'''
+Route::get('/bienvenido/{usuario?}', function ($usuario='Javier') {
+	return view('bienvenido', ['usuario'=>$usuario]);
+});
+'''
+
+
+
+===== Restricciones de los parámetros =====
+
+Imaginemos que queremos establecer alguna restricción en cuanto a los parámetros que puede recibir nuestra API. Por ejemplo, queremos que ''Juan'' se considerado un nombre de usuario valido, pero ''Juanín'' no (por el acento). O que queremos que se pueda mandar un número entero como valor váido, pero no un número con decimales o una cadena de caracteres.
+Estas restricciones las podemos añadir a nuestra aplicación usando expresiones regulares. Si una petición a la API que estamos creando no concuerda con la expresión regular, se devolverá la página del error ''404'' (Not found),
+
+**Ejemplos básicos**:
+'''
+Route::get('/usuario/{nombre}', function ($nombre) {
+	return "Hola $nombre";
+})->where('nombre', '[A-Za-z]+');
+
+
+Route::get('/usuario/{id}', function ($id) {
+	return "Hola usuario con id $id";
+})->where('id', '[0-9]+');
+'''
+
+ 
+**Ejemplo con dos parámetros**:
+'''
+Route::get('/user/{id}/{name}', function ($id, $name) {
+	return "Hola $name con id $id";
+})->where(['id' => '[0-9]+', 'name' => '[a-z]+']);
+'''
+
+
+Se pueden usar también algunas de las funciones predefinidas para simplificar las expresiones regulares:
+	* ''whereNumber('id')->whereAlpha('name');''
+	* ''whereAlphaNumeric('nombre');''
+	* ''whereUuid('id');''
+	* ''whereIn('categoria', ['drama', 'acción', 'comedia']);''
+
+
+
+==== Restricciones globales ====
+
+Es cómodo aplicar restricciones globales a nuestros parámetros. De mismo modo que en una base de datos se define el diccionario de datos indicando el tipo de dato a utilizar, en Laravel podemos indicar las restricciones que tendrán que cumplir nuestros parámetros.
+Por ejemplo supongamos que queremos indicar que los parámetros ''id'' siempre deben ser números enteros.
+
+Tendremos que modificar el fichero ''/app/Providers/RouteServiceProvider.php'' que define la clase ''RouteServiceProvider'' y en el método ''boot()'' añadiremos:
+
+'''
+public function boot()
+{
+	// ... contenido anterior ... //
+	Route::pattern('id', '[0-9]+');
+}
+'''
+
+
+A partir de este momento, aunque no lo hayamos definido en la ruta, los parámetros ''id'' tendrán que ser numéricos. Se puede hacer la prueba con la ruta que habíamos definido anteriormente:
+'''
+Route::get('/usuario/{id}', function ($id) {
+	$nombres=["Javier", "Carlos", "Juan", "David"];
+	$nom = $nombres[ $id%4 ];
+	return "<p>Al usuario $id le corresponde el nombre $nom</p>";
+});
+'''
+
+
+
+
+===== Nombrado de rutas =====
+
+Existe la posibilidad de ponerle nombres a las rutas. Esto se puede usar para generar URL o realizar redirecciones. Por ejemplo, en este caso le asignamos el nombre ''aleatorio'' a la ruta ''/numaleat''.
+Luego usamos el nombre para realizar una redirección de ''/numero'' a ''/numaleat''. Con ''route'' se genera la URL que se usará para la redirección.
+
+'''
+Route::get('/numaleat', function(){
+	$n = rand(1,5);
+	return "<h1>Número aleatorio</h1><p>Número: $n</p>";
+})->name('aleatorio');
+
+Route::get('/numero', function(){
+	return redirect()->route('aleatorio');
+});
+'''
+
+
+El ponerle nombre a las rutas **se considera una buena práctica**, de esta manera conseguimos que se pueda modificar una ruta sin necesidad de modificar nada más del código.
+Por ejemplo, imagina una ruta que tengamos definida para que se nos muestre una vista con los datos de contacto de la empresa llamada ''contacto''. Imagina que la ruta es ''/contacto'' y que el nombre de la ruta fuera, por motivos evidentes ''contacto''. 
+'''
+Route::view('/contacto', 'contacto')->name('contacto');
+'''
+
+En la barra de navegación o en el pie de las páginas podríamos imprimir esa ruta por ejemplo así: ''echo '<a href="' . route("contacto") . '">Contacta con nosotros</a>';'' Ahora, por alguna razón, se decide que la ruta sea ''/empresa'', lo único que habría que cambiar es la ruta, el resto del código permanecería igual (incluso podríamos hacer, como hemos visto arriba, que ambas rutas la antigua y la nueva apunten a la misma vista).
+'''
+Route::view('/empresa', 'contacto')->name('contacto');
+'''
+
+
+
+También podríamos haber usado directamente  ''to_route'' para generar una redirección a la ruta con nombre sin necesidad de usar previamente ''route'' para generar la URL a la que queremos dirigirnos.
+'''
+//$url = route('aleatorio');
+return to_route('aleatorio');
+'''
+
+Podemos usar parámetros en la URL, como ya hemos visto anteriormente, usando una array asociativo.
+''$url = route('perfil', ['id' => 14, 'tema' => 'oscuro']);''
+
+**Nota**: también podemos usar una redirección directamente sin usar el nombre que hemos asignado a la ruta:
+''return redirect('/aleatorio');''
+
+
+===== Prefijos en las rutas =====
+
+Esto se puede usar como un //truco// para ayudarnos a agrupar rutas similares con funcionalidad distinta o bien simplemente agrupar las rutas fácilmente.
+
+'''
+
+Route::get('/hola', function(){
+	$arraySaludo = ['Saludos, terrícola', 'Hola caracola', 'Bienvenido', '¡Hola!'];
+	$saludo = $arraySaludo[ rand(0,3) ];
+	return "<p>$saludo</p>";
+});
+
+
+Route::prefix('admin')->group(function () {
+	Route::get('/hola', function(){ //La ruta es /admin/hola
+		return "<p>Saludos, administrador.</p>";
+	});
+
+	Route::get('/info', function(){ //La ruta es /admin/info
+		return "<p>Versión 0.1.a</p>";
+	});
+});
+'''
+
+
+
+
+===== Ruta de contingencia (//fallback//) y personalizar la página de error 404 =====
+
+Por defecto, las rutas que no se encuentran o que no son válidas se redirigen a una página genérica que muestra un error 404 (recurso no encontrado).
+
+Si queremos personalizar nuestra página de error 404, podemos crear un fichero en ''/resources/views/errors/404.php'' con la personalización que queramos. Por ejemplo:
+'''
+<html><head><title>Error 404</title><meta charset="UTF-8"></head>
+<body>
+	<h1>Error 404</h1>
+	<p>La página no existe, <a href="/">vuelva al inicio.</a></p>
+</body></html>
+'''
+
+
+
+Otra opción podría ser utilizar una ruta de contingencia o de //fallback//. Podemos redirigir la ruta a otra o a una vista (en el ejemplo de abajo se redirige precisamente a la vista con el error 404 personalizado que hemos creado, aunque eso precisamente no era necesario).
+'''
+Route::fallback(function () {
+	return redirect('/hola');
+});
+'''
+
+
+'''
+Route::fallback(function () {
+	return view('errors/404');
+});
+'''
+
+
+
+
+====== Ejercicio ======
+
+**Ejercicio1**: Completa la aplicación web de la hamburguesería. En la vista Carta deben aparecer las hamburguesas y sus ingredientes. 
+	* Añade a la lista de hamburguesas tres hamburguesas especiales: campera, diabla y casera. 
+	* Añade a la lista enlaces que lleven a una página especial para cada hamburguesa. Los enlaces serán del tipo ''especial/casera'', ''especial/diabla'' y ''especial/campera''.
+	* Genera una ruta con parámetros que muestre la vista correspondiente a cada hamburguesa.
+	* Si se intenta acceder a una hamburguesa especial que no existe (por ejemplo ''especial/serrana'') se mostrará la página de una de las tres hamburguesas especiales (bien elegida al azar o siempre la misma).
+	* Genera una página especial de contingencia con un mensaje de página no encontrada y un enlace al inicio.
+
+
+== ^{ocultar} ==
+El fichero con la solución se encuentra en:
+[[~/Prof/6. HLC-DAM/Laravel doc zim/Ejercicio hamburguesería routing 2.zip]]
+
+== ^{finocultar} ==
+
