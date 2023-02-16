@@ -208,4 +208,16 @@ public function store(Request $request)
 '''
 
 
-En la vista ''crearenlace'' tendremos que tener en cuenta ahora que podemos tener un mensaje de error.
+En la vista ''crearenlace'' tendremos que tener en cuenta ahora que podemos tener un mensaje de error. Por ejemplo, justo debajo del ''<H2>'' se podría incluir algo así:
+'''
+	<h2>Crear nuevo enlace</h2>
+	
+	@if(! empty($error) )
+		<p>Se produjo un error al intentar guardar el enlace anterior.</p>
+		<p>Error: {{$error}}</p>
+	@endif
+
+'''
+
+
+
