@@ -1,0 +1,77 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-16T20:35:10+01:00
+
+====== 3- Eliminar enlaces ======
+
+
+Vamos a añadir la posibilidad de eliminar un enlace de nuestra lista de enlaces. Lo primero que vamos a hacer es mejorar ligeramente la propia lista de enlaces para que se muestre la información en forma de tabla.
+
+
+===== Cambiar la vista de enlaces =====
+
+Empecemos cambiando la vista de enlaces para mostrarlos en forma tabular. Ahora mismo estamos usando una lista con un código parecido a este:
+'''
+<ul>
+  @forelse ($enlaces as $e)
+    <li><a href="http://{{$e->url}}">{{$e->nombre}}</a> [{{$e->categoria}}] </li>
+  @empty
+    <li>No hay ningún enlace almacenado.</li>
+  @endforelse
+</ul>
+'''
+
+Y queremos una tabla con las acciones de eliminar, mostrar y editar.
+'''
+@section("contenido")
+  @auth
+    <form method="get" action="/enlaces/create">
+        <label for="crearenlace">Acciones:</label><br>
+        <input id="crearenlace" type="submit" value="Crear nuevo enlace">
+      </form>
+    
+
+    <h2>Enlaces guardados</h2>
+
+    @if( !empty($enlaces) )
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>URL</th>
+            <th>Categoría</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+        @foreach ($enlaces as $e)
+          <tr>
+            <td>{{$e->nombre}}</td>
+            <td class="center"><a href="http://{{$e->url}}">{{$e->url}}</a></td>
+            <td>{{$e->categoria}}</td>
+            <td class="center acciones">
+                <form method="delete" action="/enlaces/{{$e->id}}">@csrf
+                    <input type="submit" class="eliminar" value="Eliminar">
+                <form>
+                <a href="/enlaces/{{$e->id}}/edit">Editar</a>
+                <a href="/enlaces/{{$e->id}}">Mostrar</a>
+            </td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @else
+      <p>No hay ningún enlace almacenado.</p>
+    @endif
+  @endauth
+
+  @guest
+    <h2>Contenido protegido</h2>
+    <p>No se puede acceder al contenido de esta página sin iniciar sesión. 
+    <a href="{{ route('login') }}">Inicie sesión</a> para poder acceder.</p>
+  @endguest
+@endsection
+'''
+
+
+El siguiente paso es preparar la ruta en el fichero de rutas y la eliminación en el controlador.

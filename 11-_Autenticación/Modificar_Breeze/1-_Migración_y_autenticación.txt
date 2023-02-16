@@ -1,0 +1,524 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-16T20:33:34+01:00
+
+====== 1- Migración y autenticación ======
+
+
+
+===== Migración =====
+
+Vamos a crear una migración para crear automáticamente la tabla ''enlaces'' para la aplicación en el directorio ''database/migrations''. El fichero se llamará siguiendo la norma que aparece en los ficheros de ese directorio.
+
+Usaremos ''php artisan make:migration create_enlaces_table'' que nos generará automáticamente el nombre del fichero y una estructura del mismo que vamos a modificar para añadir nuevos campos.
+ 
+'''
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+  /**
+  * Run the migrations.
+  *
+  * @return void
+  */
+  public function up()
+  {
+    Schema::create('enlaces', function (Blueprint $table) {
+      $table->id();
+      $table->string('nombre');
+      $table->string('url')->unique();
+      $table->string('categoria');
+      $table->timestamps();
+    });
+  }
+
+/**
+ * Reverse the migrations.
+ *
+ * @return void
+ */
+  public function down()
+  {
+    Schema::dropIfExists('enlaces');
+  }
+};
+'''
+
+
+Los dos métodos deben existir, uno para crear la tabla y el otro para eliminarla.
+
+Ahora ejecutamos la migración para que se nos generen las tablas, incluida la de nuestra aplicación.
+'''
+./vendor/bin/sail php artisan migrate
+'''
+
+Si lo ejecutamos una segunda vez no se nos volverán a ejecutar porque ya fueron ejecutados anteriormente.
+
+Podemos ver información sobre una tabla ''productos'' de este modo:
+''./vendor/bin/sail php artisan db:table enlaces''
+
+Otros métodos interesantes son:
+	* ''php artisan migrate:fresh'' que nos elimina los datos de las tablas y vuelve a ejecutar las migraciones de todos los ficheros. Es útil si por ejemplo añadimos una nueva columna al esquema de la tabla, pero como borrará el contenido de la misma no se puede usar en producción, sólo en la fase de desarrollo.
+
+
+===== Crear plantilla blade de layout =====
+
+La cabecera de todas nuestras páginas va a ser la misma, por lo que lo más cómodo sería crear una plantilla blade y extenderla para el resto de las vistas. Empezaremos creando la vista ''layout.blade.php'' y la extenderemos para usarla en el resto de páginas.
+
+'''
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enlaces</title>
+    <link rel="stylesheet" href="/css/estilos.css">
+    <style>
+    </style>
+</head>
+<body>
+<div class="cabecera">
+    <h1>Enlaces</h1>
+</div>
+
+<nav>
+	@yield('navegación')
+</nav>
+
+<div class="contenido">
+
+	@yield('contenido')
+
+</div>
+</body>
+</html>
+'''
+
+===== Página de inicio =====
+
+Vamos a modificar la ruta creada por defecto para la raíz de nuestra aplicación. Modificamos en ''web.php'' la ruta ''/'' para que muestre una nueva vista llamada ''inicio'' que vamos a crear. 
+
+Creamos el fichero ''resources/view/inicio.blade.php'' con un contenido de ejemplo como el de abajo.
+
+'''
+@extends('layout')
+
+@section('navegación')
+    <ul>
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/enlaces">Enlaces</a></li>
+    </ul>
+@endsection
+
+@section("contenido")
+    <p>Bievenido a la aplicación de Enlaces, un servicio para guardar los marcadores diseñado para
+       mantener la máxima privacidad posible. Sin anuncios, ni rastreo.</p>
+    <p>Características del servicio:</p>
+    <ul>
+    <li>Gratuito</li>
+    <li>Sin anuncios</li>
+    <li>Sin cookies de terceros ni de seguimiento</li>
+    <li>Enlaces categorizados</li>
+    <li>Software libre</li>
+    </ul>
+
+    @if ( Route::has('register') && Route::has('login') )
+    <p><a href="{{ route('register') }}">Regístrate</a> si no lo has hecho ya o
+    <a href="{{ route('login') }}">inicia sesión</a> si ya estás registrado.</p>
+    @else
+    <p>Lamentablemente ahora mismo no nos es posible aceptar usuarios.</p>
+    @endif
+@endsection
+'''
+
+Las rutas ''register'' y ''login'' nos las ha definido Breeze, por lo que no tenemos que preocuparnos por ellas, funcionarán directamente.
+
+
+==== Añadiendo una hoja de estilos ====
+
+En cuanto al css, vamos a utilizar este fichero (lo crearemos en ''public/css/estilos.css''):
+'''
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway&display=swap');
+
+*{
+box-sizing: border-box;
+}
+
+body{
+background-color: #334455;
+color: #abc;
+font-family: 'Nunito', sans-serif;
+margin: 0;
+font-weight: 300;
+}
+
+.cabecera{
+height: 200px;
+/*background-image: url(/img/fondocabecera.jpg);*/
+background-color: #334455;
+background-position: center;
+background-size: cover;
+background-blend-mode: color-dodge;
+display: flex;
+justify-content: left;
+align-items: center;
+padding-left: 50px;
+font-weight: 700;
+font-size: xx-large;
+}
+
+.cabecera h1{
+font-family: 'Raleway', 'Nunito', Arial, sans-serif;
+font-weight: 300;
+}
+
+nav{
+border-top: 2px solid white;
+border-bottom: 2px solid white;
+}
+nav ul{
+display: flex;
+justify-content: space-around;
+align-items: center;
+}
+nav ul li{
+list-style-type: none;
+}
+nav ul li a{
+display: inline-block;
+min-width: 100px;
+padding: 5px;
+color: #abc;
+text-decoration: none;
+border-radius: 3px;
+text-align: center;
+}
+
+nav ul li a:hover{
+background-color: #445566;
+color: #bcd;
+text-decoration: none;
+}
+
+
+.contenido{
+margin: 0 auto;
+padding: 10px;
+max-width: 100ch;
+}
+
+.contenido a{
+color: #cde;
+text-decoration: none;
+border-bottom: 1px dotted whitesmoke;
+border-radius: 0px;   
+}
+.contenido a:hover{
+color: #bcd;
+background-color: #445566;
+}
+
+dfn{
+font-variant: small-caps;
+font-weight: 700;
+}
+
+input[type=button], input[type=submit]{
+	border: 2px solid #cde;
+	background-color: #445566;
+	border-radius: 3px;
+	padding: 5px;
+	min-width: 10rem;
+	color:#cde;
+}
+
+input[type=button]:hover, input[type=submit]:hover{
+	background-color: #cde;
+	color: #445566;
+}
+
+table{
+	border: 1px solid white;
+	border-collapse: collapse;
+	min-width: 80%;
+}
+
+thead tr{
+	background-color: #cde;
+	color: #445566;
+}
+th,td{
+	padding: 10px;
+}
+
+tr:nth-child(even){
+	background-color: #233445;
+}
+
+.center{
+	text-align: center;
+}
+td.acciones{
+	background-color: #567;
+}
+
+'''
+
+
+===== Crear y proteger la ruta /enlaces =====
+
+Ahora vamos a crear una ruta llamada ''enlaces'' cuya URL será ''/enlaces''. Queremos que esa ruta sólo esté disponible si accedemos después de habernos autenticado. Vayamos por tanto al fichero ''web.php'' y añadámoslo dentro de un grupo con el //middleware //''auth''. Dentro de ese grupo podremos añadir las rutas que necesitemos proteger. Si intentamos acceder a esa ruta sin haber iniciado sesión, se nos mostrará la pantalla de login.
+
+Lo ideal sería crear un controlador de tipo recurso, pero eso lo haremos más adelante. 
+
+De momento empezaremos impidiendo el acceso totalmente a la ruta si no estamos autenticados.
+'''
+Route::middleware('auth')->group(function () {
+    Route::get('/enlaces', function(){
+    	return view('enlaces');
+    })->name('enlaces.index');
+});
+'''
+
+
+Creamos ahora la vista ''enlaces.blade.php'' con el contenido de abajo y podemos pasar a hacer alguna prueba.
+
+'''
+@extends('layout')
+
+@section('navegación')
+    <ul>
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/enlaces">Enlaces</a></li>
+        <li><form method="POST" action="{{ route('logout') }}">
+          @csrf
+          <a href="{{route('logout') }}" onclick="event.preventDefault(); this.closest('form').submit();">
+          Logout
+          </a></form></li>
+    </ul>
+@endsection
+
+@section("contenido")
+    <h2>Enlaces guardados</h2>
+    <ul>
+    <li>Blablabla</li>
+    <li>Blebleble</li>
+    </ul>
+@endsection
+'''
+
+Eso funcionará bien y sin problemas. Pero imaginemos que no es eso lo que queremos, sino que deseamos que se pueda acceder a la vista de ''enlaces'', pero que el contenido de la vista cambie en función de si estamos autenticados o no.
+
+En ese caso, tendremos que modificar el fichero de rutas ''web.php'' para no proteger la ruta allí y cambiar el fichero de la vista.
+
+Fichero ''web.php'':
+'''
+Route::get('/enlaces', function(){
+  return view('enlaces');
+})->name('enlaces.index');
+'''
+
+
+Fichero ''enlaces.blade.php'':
+'''
+@extends('layout')
+
+@section('navegación')
+    <ul>
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/enlaces">Enlaces</a></li>
+        @if (Route::has('login'))
+          @auth
+          <li><form method="POST" action="{{ route('logout') }}">
+          @csrf
+          <a href="{{route('logout') }}" onclick="event.preventDefault(); this.closest('form').submit();">
+          Logout
+          </a></form></li>
+          @else
+            <li><a href="{{ route('login') }}">Login</a></li>
+            <li><a href="{{ route('register') }}">Registrarse</a></li>
+          @endauth
+        @endif
+    </ul>
+@endsection
+
+@section("contenido")
+	@auth
+    <h2>Enlaces guardados</h2>
+    <ul>
+    <li>Blablabla</li>
+    <li>Blebleble</li>
+    </ul>
+    @endauth
+
+    @guest
+    <h2>Contenido protegido</h2>
+    <p>No se puede acceder al contenido de esta página sin iniciar sesión. 
+    <a href="{{ route('login') }}">Inicie sesión</a> para poder acceder.</p>
+    @endguest
+@endsection
+'''
+
+La vista de arriba mostrará un enlace para hacer //login// y para registrarse si no estamos autenticados y mostrará un enlace a //logout// si no lo estamos. Además se restringe la información que se ve. 
+
+
+===== Modificando la pantalla de login =====
+
+Por defecto Breeze proporciona una pantalla de login con toda la funcionalidad necesaria y más, pero que no está adaptada a nuestra aplicación ni a su estética (por ejemplo el enlace de si olvidó la contraseña tratará de mandar un correo electrónico que es algo que no podemos hacer por no tener instalado un servidor de correo). Lo que podemos hacer es modificarla para que siga funcionando correctamente, pero adaptándola a nuestras necesidades.
+
+La vista de login se encuentra en ''resources/views/auth/login.blade.php''
+
+'''
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enlaces</title>
+    <link rel="stylesheet" href="/css/estilos.css">
+    <style>
+    </style>
+</head>
+<body>
+<div class="cabecera">
+	<h1>Iniciar sesión</h1>
+</div>
+
+	<div class="contenido">
+    <form method="POST" action="{{ route('login') }}">
+        @csrf
+
+        <!-- Email Address -->
+        <div>
+            <label for="email">E-Mail</label><br>
+            <input id="email" type="email" name="email" required autofocus autocomplete="username" />
+        </div>
+
+        <!-- Password -->
+        <div>
+            <label for="password">Password</label><br>
+            <input id="password" type="password" name="password" required autocomplete="current-password" />
+        </div>
+
+        <!-- Remember Me -->
+        <div>
+            <label for="remember_me"><br>
+                <input id="remember_me" type="checkbox" name="remember">
+                <span>Recuérdame</span>
+            </label>
+        </div>
+
+        <div>
+            <br>
+            <input type="submit" value="Entrar">
+        </div>
+    </form>
+    
+    <p>Si todavía no tiene una cuenta creada, <a href="{{ route('register') }}">regístrese ahora mismo.</a></p>
+    </div>
+</body>
+</html>
+'''
+
+Y con eso tendremos nuestra pantalla de login creada y en total funcionamiento. Salvo por un detalle: al iniciar sesión se nos redirige a una vista dashboard privado. Solucionémoslo para que nos diriga a la vista ''enlaces''.
+
+
+==== Cambiar la redirección de /dashboard ====
+
+Si vamos al fichero de rutas ''web.php'' vemos que al final se añade también el fichero ''auth.php'' conlas rutas de autenticación. En él vemos definida esta ruta: ''Route::post('login', [AuthenticatedSessionController::class, 'store']);''
+Por lo que tendremo que ir a ''app/Http/Controllers/Auth/AutenticatedSessionController.php'' y concretamente al método ''store()''. El método es el que aparece abajo
+
+'''
+public function store(LoginRequest $request): RedirectResponse
+{
+  $request->authenticate();
+  $request->session()->regenerate();
+  return redirect()->intended(RouteServiceProvider::HOME);
+}
+'''
+
+
+Podríamos cambiar la última línea para que nos rediriga a la ruta [[/enlaces.|''/enlaces''.]] 
+''return redirect('/enlaces');''
+
+''Nota'': fíjate que este método espera una redirección, no se puede hacer un ''return view('enlaces');''
+
+Sin embargo, ese mejor dejar tranquilo este controlador, porque no sería el único que tendríamos que cambiar (el controlador del registro ''RegisteredUserController'' tiene un comportamiento similar). Si nos fijamos, la ruta a la que se nos redirigía originalmente provenía de un //Provider//, un proveedor rutas, concretamente la ruta ''HOME'' definida en ''RouteServiceProvider'' que se encuentra en ''app/Providers/RouteServiceProviders.php''.
+
+Y ahí tenemos definido esa ruta:
+''public const HOME = '/dashboard';''
+Que nosotros cambiaremos a
+''public const HOME = '/enlaces';''
+
+Si modificamos ahora la vista de registro también podremos ver cómo nos redirige a ''/enlaces'' inmediatamente tras crear al nuevo usuario.
+
+
+===== Modificando la pantalla de registro =====
+
+La vista de registro se encuentra en ''resources/views/auth/register.blade.php''
+
+'''
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enlaces</title>
+    <link rel="stylesheet" href="/css/estilos.css">
+    <style>
+    </style>
+</head>
+<body>
+<div class="cabecera">
+	<h1>Crear una cuenta nueva</h1>
+</div>
+
+	<div class="contenido">
+	
+	    <form method="POST" action="{{ route('register') }}">
+        @csrf
+
+        <!-- Name -->
+        <div>
+            <label for="name">Nombre</label><br>
+            <input id="name" type="text" name="name" required autofocus autocomplete="name" />
+        </div>
+
+        <!-- Email Address -->
+        <div>
+            <label for="email">E-Mail</label><br>
+            <input id="email" type="email" name="email" required autofocus autocomplete="username" />
+        </div>
+
+        <!-- Password -->
+        <div>
+            <label for="password">Password</label><br>
+            <input id="password" type="password" name="password" required autocomplete="new-password" />
+        </div>
+
+        <!-- Password confirmation -->
+        <div>
+            <label for="password_confirmation">Confirmar password</label><br>
+            <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" />
+        </div>
+
+        <div>
+        		<br>
+            <input type="submit" value="Registrarse">
+        </div>
+    </form>
+
+
+   <p>Si ya se creó una cuenta anteriormente, <a href="{{ route('login') }}">inicie sesión.</a></p>
+   </div>
+</body>
+</html>
+'''
+
+
