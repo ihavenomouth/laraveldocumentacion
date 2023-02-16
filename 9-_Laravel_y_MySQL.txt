@@ -156,6 +156,7 @@ use Illuminate\Support\Facades\DB;
 public function index()
 {
    $platos = DB::select('select * from Platos where ID >= ?', [1]);
+   //$platos = DB::table('platos')->where('ID','1')->get();
    return view('carta', ['platos'=>$platos]);
 }
 '''

@@ -89,11 +89,9 @@ Otros métodos interesantes son:
 	* ''php artisan migrate:fresh'' que nos elimina los datos de las tablas y vuelve a ejecutar las migraciones de todos los ficheros. Es útil si por ejemplo añadimos una nueva columna al esquema de la tabla, pero como borrará el contenido de la misma no se puede usar en producción, sólo en la fase de desarrollo.
 
 
-===== Página de inicio =====
+===== Crear plantilla blade de layout =====
 
-Vamos a modificar la ruta creada por defecto para la raíz de nuestra aplicación. Modificamos en ''web.php'' la ruta ''/'' para que muestre una nueva vista llamada ''inicio'' que vamos a crear. 
-
-Creamos el fichero ''resources/view/inicio.blade.php'' con un contenido de ejemplo como el de abajo.
+La cabecera de todas nuestras páginas va a ser la misma, por lo que lo más cómodo sería crear una plantilla blade y extenderla para el resto de las vistas. Empezaremos creando la vista ''layout.blade.php'' y la extenderemos para usarla en el resto de páginas.
 
 '''
 <!DOCTYPE html>
@@ -112,13 +110,35 @@ Creamos el fichero ''resources/view/inicio.blade.php'' con un contenido de ejemp
 </div>
 
 <nav>
+	@yield('navegación')
+</nav>
+
+<div class="contenido">
+
+	@yield('contenido')
+
+</div>
+</body>
+</html>
+'''
+
+===== Página de inicio =====
+
+Vamos a modificar la ruta creada por defecto para la raíz de nuestra aplicación. Modificamos en ''web.php'' la ruta ''/'' para que muestre una nueva vista llamada ''inicio'' que vamos a crear. 
+
+Creamos el fichero ''resources/view/inicio.blade.php'' con un contenido de ejemplo como el de abajo.
+
+'''
+@extends('layout')
+
+@section('navegación')
     <ul>
         <li><a href="/">Inicio</a></li>
         <li><a href="/enlaces">Enlaces</a></li>
     </ul>
-</nav>
+@endsection
 
-<div class="contenido">
+@section("contenido")
     <p>Bievenido a la aplicación de Enlaces, un servicio para guardar los marcadores diseñado para
        mantener la máxima privacidad posible. Sin anuncios, ni rastreo.</p>
     <p>Características del servicio:</p>
@@ -136,9 +156,7 @@ Creamos el fichero ''resources/view/inicio.blade.php'' con un contenido de ejemp
     @else
     <p>Lamentablemente ahora mismo no nos es posible aceptar usuarios.</p>
     @endif
-</div>
-</body>
-</html>
+@endsection
 '''
 
 Las rutas ''register'' y ''login'' nos las ha definido Breeze, por lo que no tenemos que preocuparnos por ellas, funcionarán directamente.
@@ -237,15 +255,15 @@ input[type=button], input[type=submit]{
 	border-radius: 3px;
 	padding: 5px;
 	min-width: 10rem;
+	color:#cde;
 }
 
 input[type=button]:hover, input[type=submit]:hover{
 	background-color: #cde;
+	color: #445566;
 }
 
 '''
-
-
 
 
 ===== Crear y proteger la ruta /enlaces =====
@@ -267,22 +285,9 @@ Route::middleware('auth')->group(function () {
 Creamos ahora la vista ''enlaces.blade.php'' con el contenido de abajo y podemos pasar a hacer alguna prueba.
 
 '''
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enlaces</title>
-    <link rel="stylesheet" href="/css/estilos.css">
-    <style>
-    </style>
-</head>
-<body>
-<div class="cabecera">
-    <h1>Enlaces</h1>
-</div>
+@extends('layout')
 
-<nav>
+@section('navegación')
     <ul>
         <li><a href="/">Inicio</a></li>
         <li><a href="/enlaces">Enlaces</a></li>
@@ -292,17 +297,15 @@ Creamos ahora la vista ''enlaces.blade.php'' con el contenido de abajo y podemos
           Logout
           </a></form></li>
     </ul>
-</nav>
+@endsection
 
-<div class="contenido">
+@section("contenido")
     <h2>Enlaces guardados</h2>
     <ul>
     <li>Blablabla</li>
     <li>Blebleble</li>
     </ul>
-</div>
-</body>
-</html>
+@endsection
 '''
 
 Eso funcionará bien y sin problemas. Pero imaginemos que no es eso lo que queremos, sino que deseamos que se pueda acceder a la vista de ''enlaces'', pero que el contenido de la vista cambie en función de si estamos autenticados o no.
@@ -319,22 +322,9 @@ Route::get('/enlaces', function(){
 
 Fichero ''enlaces.blade.php'':
 '''
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enlaces</title>
-    <link rel="stylesheet" href="css/estilos.css">
-    <style>
-    </style>
-</head>
-<body>
-<div class="cabecera">
-    <h1>Enlaces</h1>
-</div>
+@extends('layout')
 
-<nav>
+@section('navegación')
     <ul>
         <li><a href="/">Inicio</a></li>
         <li><a href="/enlaces">Enlaces</a></li>
@@ -351,9 +341,9 @@ Fichero ''enlaces.blade.php'':
           @endauth
         @endif
     </ul>
-</nav>
+@endsection
 
-<div class="contenido">
+@section("contenido")
 	@auth
     <h2>Enlaces guardados</h2>
     <ul>
@@ -367,9 +357,7 @@ Fichero ''enlaces.blade.php'':
     <p>No se puede acceder al contenido de esta página sin iniciar sesión. 
     <a href="{{ route('login') }}">Inicie sesión</a> para poder acceder.</p>
     @endguest
-</div>
-</body>
-</html>
+@endsection
 '''
 
 La vista de arriba mostrará un enlace para hacer //login// y para registrarse si no estamos autenticados y mostrará un enlace a //logout// si no lo estamos. Además se restringe la información que se ve. 

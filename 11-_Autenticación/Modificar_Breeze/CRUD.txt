@@ -13,7 +13,7 @@ Una vez realizadas estas dos operaciones, el resto de las operaciones (mostrar i
 
 Lo más sencillo va a ser comenzar con la pantalla de //crear enlace//. Como es una operación de crear un nuevo enlace, tendremos que utilizar una ruta llamada ''/enlaces/create'' cuyo nombre será ''enlaces.create'' y al usar el método GET nos dirigirá a una nueva ventana que permita crear un enlace.
 
-Antes de nada vamos a incluir un enlace en la barra de navegación de la vista ''enlaces'' para que incluya un enlace a esta ruta si estamos autenticados. Ademaś también vamos a incluir un botón que nos dirija a la misma ruta.
+Antes de nada vamos a incluir un enlace en la barra de navegación de la vista ''enlaces'' para que incluya un enlace a esta ruta si estamos autenticados. Además también vamos a incluir un botón que nos dirija a la misma ruta.
 '''
 @auth
 <li><a href="/enlaces/create">Crear enlace</a></li>
@@ -122,22 +122,9 @@ public function store(Request $request)
 
 Cuando se acceda a la ruta ''/enlaces/create'' usando get, se nos debe mostrar la ruta ''crearenlace'' que todavía no existe. Vamos a crear el fichero ''crearenlace.blade.php'' con este contenido:
 '''
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enlaces</title>
-    <link rel="stylesheet" href="/css/estilos.css">
-    <style>
-    </style>
-</head>
-<body>
-<div class="cabecera">
-    <h1>Enlaces</h1>
-</div>
+@extends('layout')
 
-<nav>
+@section('navegación')
     <ul>
         <li><a href="/">Inicio</a></li>
         <li><a href="/enlaces">Enlaces</a></li>
@@ -159,9 +146,9 @@ Cuando se acceda a la ruta ''/enlaces/create'' usando get, se nos debe mostrar l
           @endauth
         @endif
     </ul>
-</nav>
+@endsection
 
-<div class="contenido">
+@section("contenido")
 	@auth
 	<h2>Crear nuevo enlace</h2>
 
@@ -184,9 +171,7 @@ Cuando se acceda a la ruta ''/enlaces/create'' usando get, se nos debe mostrar l
     <p>No se puede acceder al contenido de esta página sin iniciar sesión. 
     <a href="{{ route('login') }}">Inicie sesión</a> para poder acceder.</p>
     @endguest
-</div>
-</body>
-</html>
+@endsection
 '''
 
 No hay mucho de interés, sólo hay que recordar que:
