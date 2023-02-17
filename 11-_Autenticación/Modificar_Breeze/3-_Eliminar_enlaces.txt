@@ -50,9 +50,11 @@ Y queremos una tabla con las acciones de eliminar, mostrar y editar.
             <td class="center"><a href="http://{{$e->url}}">{{$e->url}}</a></td>
             <td>{{$e->categoria}}</td>
             <td class="center acciones">
-                <form method="delete" action="/enlaces/{{$e->id}}">@csrf
-                    <input type="submit" class="eliminar" value="Eliminar">
-                <form>
+                <form method="post" action="/enlaces/{{$e->id}}">
+                    @csrf
+                    @method('delete')
+                    <input type="submit" class="eliminar" value="Eliminar">>
+                </form>
                 <a href="/enlaces/{{$e->id}}/edit">Editar</a>
                 <a href="/enlaces/{{$e->id}}">Mostrar</a>
             </td>
@@ -74,4 +76,99 @@ Y queremos una tabla con las acciones de eliminar, mostrar y editar.
 '''
 
 
-El siguiente paso es preparar la ruta en el fichero de rutas y la eliminación en el controlador.
+Para poder eliminar el enlace con ''id'' 5, lo que hemos hecho es crear un formulario con una llamada de tipo ''delete''  a ''/enlaces/5''. Como todas las llamadas que no sean de tipo ''get'', se tiene que añadir la directiva de Blade ''@csrf''.
+Pero esto no basta por no ser tampoco de tipo ''POST''. Por defecto un navegador sólo puede mandar peticiones ''get'' o ''post'', pero necesitamos mandar una de tipo ''delete''. Eso se indica usando ''post'' como //method// y usando la directiva ''@method('delete');'' (esta técnica se conoce como //csrf spoofing//).
+
+'''
+<form method="post" action="/enlaces/{{$e->id}}">
+  @csrf
+  @method('post')
+<input type="submit" class="eliminar" value="Eliminar">
+'''
+
+Esto eliminará directamente el enlace. Podría ser interesante modificar el comportamiento, por ejemplo:
+	* Hacer que sea un enlace que nos muestre una página con los datos del enlace y ahí colocar el formulario de eliminación
+	* Hacer un script de javascript que cuando se pulse el enlace nos pregunte antes de realizar una llamada a ''/enlace/5'' con el método ''delete''
+
+De momento lo vamos a dejar así, pero la funcionalidad de eliminar no está completa. El siguiente paso es preparar la ruta en el fichero de rutas y la eliminación en el controlador.
+
+
+===== Añadiendo la nueva ruta =====
+
+Modificamos el fichero de rutas ''web.php'', para añadir la ruta delete. Esto se puede hacer de dos maneras diferentes, la primera es la que hemos estado usando hasta ahora y basta con añadir la ruta y modificar el controlador para que el método ''destroy()'' reciba como parámetro el ''id'' del elemento a eliminar, luego recuperar el elemento y finalmente eliminarlo. La ruta sería algo así:
+''Route::delete('/enlaces/{id}', [EnlaceController::class, 'destroy'])->name('enlaces.destroy');''
+
+Pero Laravel proporciona una manera mejor que hace que en vez de mandar el id del elemento, se mande directamente el propio elemento, buscado y encontrado por Laravel. 
+
+Para ello añadimos el modelo para poder usarlo (''use App\Models\Enlace;'') y en lugar de ''delete('/enlaces/{id}...'' usamos ''delete('/enlaces/{enlace}''. Si usamos el mismo nombre que el modelo pero en minúscula, Laravel se encargará del resto.
+
+'''
+use App\Http\Controllers\EnlaceController;
+use App\Models\Enlace;
+
+Route::get('/enlaces', [EnlaceController::class, 'index'])->name('enlaces.index');
+
+Route::middleware('auth')->group(function () {
+  Route::get('/enlaces/create', [EnlaceController::class, 'create'])->name('enlaces.create');
+  Route::post('/enlaces/create', [EnlaceController::class, 'store'])->name('enlaces.store');
+  Route::delete('/enlaces/{enlace}', [EnlaceController::class, 'destroy'])->name('enlaces.destroy');
+});
+'''
+
+El método ''destroy()'' del controlador quedará como abajo. Fíjate que lo que recibe el método es un objeto de tipo ''Enlace''.
+'''
+public function destroy(Enlace $enlace)
+{
+	try{
+		$enlace->delete();
+	}
+	catch(\Exception $e){
+	  return view('enlaces', ['error' => "No se pudo eliminar el enlace \
+		  ($enlace->nombre : $enlace->url)."]);
+	}
+
+	$enlaces = Enlace::get();
+	return view('enlaces', ['enlaces' => $enlaces] );  
+}
+'''
+
+
+
+===== Ruta de fallback y error 404 =====
+
+Ya que estamos modificando las rutas, fíjate que hemos añadido dos enlaces a las acciones. Uno para mostrar la información detallada de un enlace y otro para mostrar un formulario de edición de los mismos. Si pulsamos un enlace de //Editar// nos saldrá la página de error 404, pero si pulsamos la de //Mostrar// hará que se nos muestre un error. La diferencia estriba en la definición de las rutas que ya tenemos creadas.
+En cualquier caso, esto podemos evitarlo de varias maneras, pero la más cómoda es usar una redirección para que ambas vayan a la página de error.
+
+'''
+Route::fallback(function () {
+  return view('errors/404');
+});
+'''
+
+Para ello crearemos una vista en ''resources/views/errors/404.blade.php'' con un mensaje de error, por ejemplo algo así:
+'''
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Enlaces</title>
+	<link rel="stylesheet" href="/css/estilos.css">
+	<style>
+	</style>
+</head>
+<body>
+<div class="cabecera">
+	<h1>Página no encontrada</h1>
+</div>
+
+	<div class="contenido">
+		<h2>Error 404</h2>
+    	
+		<p>Puede volver a la <a href="/">página de inicio.</a></p>
+	</div>
+</body>
+</html>
+'''
+
+
