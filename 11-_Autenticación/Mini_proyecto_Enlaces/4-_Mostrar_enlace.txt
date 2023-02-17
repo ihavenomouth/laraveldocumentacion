@@ -1,0 +1,110 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-17T09:06:48+01:00
+
+====== 4- Mostrar enlace ======
+
+Supongamos que queremos ahora añadir la funcionalidad de mostrar información sobre un enlace concreto. Realmente no hay mucha más información que la que ya mostramos en la página con los enlaces, pero vamos a implementar la funcionalidad igualmente. Vamos a añadir la información que Eloquent guarda por nosotros: la fecha y hora de creación y fecha y hora de actualización.
+
+Lo primero será añadir la ruta en el fichero ''web.php'', luego modificar el controlador. La ruta para mostrar el enlace con con ''id'' ''5'' debería ser ''/enlaces/5'' usando el método GET.  Es decir:
+'''
+  Route::get('/enlaces/{id}', [EnlaceController::class, 'create'])->name('enlaces.show');
+'''
+
+Sin embargo, como ya vimos, si añadimos al fichero de rutas ''use App\Models\Enlace;'' Laravel podrá //inyectar// en objeto ''Enlace'' correspondiente directamente al controlador, ahorrándonos la molestia de tener que buscarlo nosotros.
+
+Quedaría por tanto así:
+'''
+Route::middleware('auth')->group(function () {
+  Route::get('/enlaces/create', [EnlaceController::class, 'create'])->name('enlaces.create');
+  Route::post('/enlaces/create', [EnlaceController::class, 'store'])->name('enlaces.store');
+  Route::delete('/enlaces/{enlace}', [EnlaceController::class, 'destroy'])->name('enlaces.destroy');
+  Route::get('/enlaces/{enlace}', [EnlaceController::class, 'show'])->name('enlaces.show');
+});
+'''
+
+
+
+===== El controlador =====
+
+En el controlador se modificará el método ''show()''. 
+'''
+	public function show(Enlace $enlace)
+	{
+		return view('mostrarenlace', ['enlace' => $enlace] );
+	}
+'''
+
+
+
+===== La vista =====
+
+La vista ''mostrarenlace.blade.php'' quedará así:
+
+'''
+@extends('layout')
+
+@section('navegación')
+    <ul>
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/enlaces">Enlaces</a></li>
+
+        @auth
+        <li><a href="/enlaces/create">Nuevo enlace</a></li>
+        @endauth
+        
+        @if (Route::has('login'))
+          @auth
+          <li><form method="POST" action="{{ route('logout') }}">
+          @csrf
+          <a href="{{route('logout') }}" onclick="event.preventDefault(); this.closest('form').submit();">
+          Logout
+          </a></form></li>
+          @else
+            <li><a href="{{ route('login') }}">Login</a></li>
+            <li><a href="{{ route('register') }}">Registrarse</a></li>
+          @endauth
+        @endif
+    </ul>
+@endsection
+
+
+@section('contenido')
+
+	@auth
+	<h2>Mostrar enlace</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>URL</th>
+        <th>Categoría</th>
+        <th>Creación</th>
+        <th>Actualizado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{$enlace->nombre}}</td>
+        <td class="center"><a href="http://{{$enlace->url}}">{{$enlace->url}}</a></td>
+        <td>{{$enlace->categoria}}</td>
+        <td class="center">{{$enlace->created_at}}</td>
+        <td class="center">{{$enlace->updated_at}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Volver a la <a href="/enlaces">lista de enlaces</a></p>
+
+    @endauth
+
+    @guest
+    <h2>Contenido protegido</h2>
+    <p>No se puede acceder al contenido de esta página sin iniciar sesión. 
+    <a href="{{ route('login') }}">Inicie sesión</a> para poder acceder.</p>
+    @endguest
+@endsection
+'''
+
+

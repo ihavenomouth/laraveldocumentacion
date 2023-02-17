@@ -172,3 +172,29 @@ Para ello crearemos una vista en ''resources/views/errors/404.blade.php'' con un
 '''
 
 
+===== Imagen de fondo en la cabecera =====
+
+La cabecera de nuestra página está pensada para tener una imagen de fondo si así lo deseamos. Si vamos al fichero ''estilos.css'' veremos que la clase ''.cabecera'' contiene esta línea comentada.
+'''
+/*background-image: url(/img/fondocabecera.jpg);*/
+'''
+
+Bastará con descomentarla, crear el directorio ''public/img'', buscar una imagen adecuada y guardarla allí.
+Por ejemplo, se podría usar la imagen que se enlaza abajo: imagen libre de derechos (licencia CC-0) que podríamos recortar para dejarla más pequeña.
+https://www.pexels.com/es-es/foto/fotografia-en-escala-de-grises-de-la-cadena-220237/
+
+La imagen que se va a utilizar después de modificarla es la de abajo, con una resolución muy pequeña (''500 x 128'') y poco peso.
+{{./pasted_image.png}}
+
+Aún así puede que veamos que hay algo de parpadeo o //flickering// en la imagen al pasar de una página a otra. El sospechoso habitual suele ser el tamaño de la imagen, pero como hemos visto no es el caso aquí porque la imagen es muy liviana. Esto se debe en parte a que, aunque la imagen esté cacheada, se utiliza en el CSS que tiene poca prioridad  a la hora de cargar los elementos de una web (la hoja de estilos y su renderizado se carga más tarde que los elementos HTML).
+ 
+Lo que podemos hacer para reducir el efecto (aunque no impedirlo del todo) es cargar la imagen con más prioridad en el código HTML aunque no se use aún y siempre sin mostrarla, de esa manera ya estará cargada en memoria cuando se aplique el CSS.
+
+En el fichero ''layout.blade.php'' se puede incluir la siguiente línea en la cabecera (por ejemplo justo antes de cargar el fichero con la hoja de estilos) para cargar la imagen con mayor prioridad.
+''<link rel="preload" href="/img/fondocabecera.jpg" as="image" type="image/jpg" />''
+
+**Nota**: otra opción, pero muchos menos efectiva, habría sido incluir en el body una referencia a la imagen y que no se muestre. Aunque esto mejorará algo el parpadeo, no lo eliminará del todo.
+''<img src="/img/fondocabecera.jpg" style="display:none;" alt="" />''
+
+
+
