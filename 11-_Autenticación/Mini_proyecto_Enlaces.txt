@@ -27,3 +27,4 @@ Ahora instalamos breeze
 Después de instalar breeze tendremos el //scaffold// (el andamiaje) de toda la parte de la autenticación ya creada, incluidos los formularios y rutas.
 
 Antes de ejecutar las migraciones que necesita Breeze, deberíamos crear nuestra propia migración para añadir a la base de datos las tablas que vayamos a necesitar.
+

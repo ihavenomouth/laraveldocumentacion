@@ -52,9 +52,9 @@ Ahora deberíamos crear la ruta en el fichero ''web.php''. Pero vamos a hacerlo 
 
 Si queremos crear el modelo, el controlador de recursos y la migración podríamos ejecutar algo como lo de abajo, pero no es lo que queremos ahora mismo:
 ''./vendor/bin/sail php artisan make:model -mrc Enlace''
-	* ''-m'' : indica que se crearña también la migración
+	* ''-m'' : indica que se creará también la migración
 	* ''-c'' : indica que se creará también un controlador
-	* ''-r'' : indica que el controlador será de tipo recurso
+	* ''-r'' : indica que el controlador será de tipo recurso (nos generará los métodos aunque estarán vacíos)
 
 Sin embargo, ya tenemos creado la migración, por lo que no la necesitamos.
 ''./vendor/bin/sail php artisan make:model -rc Enlace''
@@ -112,8 +112,9 @@ public function store(Request $request)
   $enlace->categoria = $request->categoria;
   $enlace->save();
         
-  $enlaces = Enlace::get();        
-  return view('enlaces', ['enlaces' => $enlaces] );
+  //$enlaces = Enlace::get();        
+  //return view('enlaces', ['enlaces' => $enlaces] );
+  return redirect()->route('enlaces.index');
 }
 '''
 
@@ -203,8 +204,7 @@ public function store(Request $request)
                existe esa URL ($request->nombre : $request->url) en la lista de enlaces."]);
   }
         
-  $enlaces = Enlace::get();        
-  return view('enlaces', ['enlaces' => $enlaces] );
+  return redirect()->route('enlaces.index');
 }
 '''
 

@@ -127,8 +127,7 @@ public function destroy(Enlace $enlace)
 		  ($enlace->nombre : $enlace->url)."]);
 	}
 
-	$enlaces = Enlace::get();
-	return view('enlaces', ['enlaces' => $enlaces] );  
+  return redirect()->route('enlaces.index'); 
 }
 '''
 
