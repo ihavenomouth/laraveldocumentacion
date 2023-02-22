@@ -112,7 +112,7 @@ En la tabla de abajo se muestran los nombres, URI y verbos estandarizados que se
 |:----------|:--------------------|:----------------|:---------------|
 | GET       | /carta              | index           | carta.index    |
 | GET       | /carta/{plato}      | show            | carta.show     |
-| GET       | /carta/create       | create          | f              |
+| GET       | /carta/create       | create          | carta.create   |
 | GET       | /carta/{plato}/edit | edit            | carta.edit     |
 | POST      | /carta              | store           | carta.store    |
 | PUT/PATCH | /carta/{plato}      | update          | carta.update   |
@@ -146,6 +146,8 @@ Si se recibe una petición a ''/carta/create'' usando el método GET, se invocar
 Si se recibe una petición a ''/carta'' usando el método POST, se invocará el método ''store()'' que servirá para almacenar en la base de datos un plato (creado previamente en el formulario mostrador por el método ''create()'').
 Si se recibe una petición a ''/carta/{plato}'' usando el método GET, se invocará el método ''show()'' que mostrará una vista con información detallada de un plato concreto.
 Etcétera.
+
+**Nota**: recuerda que el orden en el que se declaran las rutas es importante. Si tenemos una ruta ''/producto/{nombre}'' definida antes que /''producto/create'' no se accederá nunca a la segunda.
 
 En nuestro caso, la funcionalidad que necesitamos es la de mostrar un listado con los platos y por lo tanto tendremos que definir el código del método ''index()'' en el controlador y crear la ruta ''carta.index'' en el fichero de rutas.
 

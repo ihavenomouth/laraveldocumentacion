@@ -1,0 +1,79 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-13T16:04:23+01:00
+
+====== Y- Otras cosas ======
+
+
+
+===== Sesiones =====
+
+Documentación:
+https://laravel.com/docs/9.x/session
+
+La manera en la que Laravel gestiona el objeto de sesión se puede establecer en el fichero ''/config/sessions.php'', por ejemplo el tiempo de vida de la sesión en minutos.
+'''
+'driver' => env('SESSION_DRIVER', 'file'),
+'lifetime' => env('SESSION_LIFETIME', 120),
+'expire_on_close' => false,
+'''
+
+
+==== Usar el objeto sesión ====
+
+Podemos utilizar la sesión a través de las clases que proporciona Laravel, en este caso la función global de ayuda ''session()''. En el ejemplo de abajo se utiliza en el fichero de rutas, aunque se podría usar en una vista o un controlador.
+
+'''
+Route::get('/home', function () {
+    // Recupera un dato almacenada en la sesión:
+    $value = session('jornada');
+ 
+    // También podemos especificar un valor por defecto si no existe en la sesión el que buscamos
+    $value = session('jornada', 'mañana');
+ 
+    //Almacenamos un valor
+    session(['nombre' => 'Anónimo']);
+});
+'''
+
+
+==== Mensajes  de un sólo uso desde un controlador a la vista ====
+
+Usando la función de sesión se pueden pasar datos o un mensaje desde el controlador a una vista que **sólo estarán disponibles para ser consumidos una vez**. Se usa así: ''session()->flash('mensaje', 'blablabla');''
+
+Esto que puede parecer que tiene poco sentido, puede ser útil en varios escenarios.
+
+**Nota**: también se puede usar para pasar datos, no sólo mensajes.
+
+Veamos un ejemplo: En un controlador del recurso ''Producto'' intentamos escribir un dato en la tabla ''productos'' de la base de datos y tenemos un error por clave primaria duplicada (o una restricción ''unique'' que no se está cumpliendo) o similares.
+En ese caso tendríamos algo así en algún momento:
+'''
+try{
+  $producto->save();
+}
+catch(\Exception $e){
+  session()->flash('error','Se ha producido un error al intentar crear el producto.');
+  return view('crearproducto');
+}
+'''
+
+
+En caso de error se nos devuelve a la vista ''crearproducto.blade.php'' donde tendremos disponible el mensaje que se nos pasó y simplemente tendremos que consumirlo como lo haríamos con cualquier dato almacenado en el array de sesión o usando la función global ''session''.
+
+Fragmento de la vista ''crearproducto.blade.php'':
+'''
+@if(session('error'))
+  {{session('error')}}
+@endif
+'''
+
+**Importante**: El mensaje solo aguanta una petición, si actualizas desaparece.
+
+
+
+
+
+===== Volúmenes persistentes en docker =====
+
+Ejecutar ''sail down'' eliminará los contenedores, pero **mantendrá los volúmenes** (puedes verlo con un ''docker volume ls''), de manera que se mantendrán las bases de datos (por ejemplo) aunque se eliminen los contenedores que la usan. Al hacer un ''sail up'' se podrá seguir usando la misma base de datos anterior puesto que nunca fue eliminada.
+Para eliminar contenedores y los volúmenes asociados hay que ejecutar un ''sail down -v''.

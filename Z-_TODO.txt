@@ -1,0 +1,142 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-22T09:09:01+01:00
+
+====== Z- TODO ======
+
+
+Aquí se reseñan brevemente un listado de algunos aspectos de Laravel y su ecosistema que se quedan sin cubrir en estos documentos. Tal vez en otros cursos posteriores se termine de completar.
+
+
+
+====== Validación ======
+
+Antes de guardar información desde un controlador, deberíamos comprobar que los datos que se van a guardar son correctos. Laravel permite que se validen estos datos de una manera bastante sencilla.
+
+Por ejemplo, imaginemos que vamos a almacenar un nuevo ''Producto'':
+'''
+public function store(Request $request){
+  $request->validate([
+    'nombre' => ['required', 'min:3'],
+    'precio' => ['required', 'numeric'],
+  ]);
+
+  $p = new Produto;
+  $p->nombre = $request->input('txtNombre');
+  $p->precio = $request->input('txtPrecio');
+  $p->save();
+  ...
+}
+'''
+
+
+
+Algunas (no están todas) de las validaciones disponibles son:
+	* required
+	* numeric
+	* size
+	* starts_with
+	* string
+	* date
+	* url
+	* min
+
+Si hay algún error de validación, automáticamente se le pasa una variable ''$errors'' a la vista (no tenemos que hacerlo nosotros, ya lo hace él) que es un array de todos los errores de validación.
+
+En la vista podemos ver el error que se nos muestra con la directiva ''@error'' y ''@enderror''. Por ejemplo, supongamos que tras un error al intentar crear un producto se nos vuelve a mostrar la misma vista de crear producto, tendremos algo así:
+'''
+...
+
+<label for="txtNombre">Nombre</label>
+<input type="text" name="txtNombre" value="{{ old('txtNombre') }}">
+<br>
+@error
+    <small style="color:red">{{$message}}</small>
+@enderror
+
+...
+'''
+
+Prueba también a hacer un ''@dump($errors)''.
+
+
+===== Mensajes de error de validación en español =====
+En el fichero de configuración ''config/app.php'' podemos cambiar las //locale settings// o configuración regional. Por defecto en un proyecto nuevo las locale están en inglés y por tanto los mensajes de error aparecerán en inglés. Si cambias las '''locale''' a '''es''' se intentará mostrar en español.
+'''
+'locale' => 'es',
+'''
+
+**Nota**: no deberíamos cambiar la de //fallback//:
+'''
+'fallback_locale' => 'en',
+'''
+
+Los mensajes de error de validación están definidos en ''lang/en/validation.php'' y por defecto sólo están disponibles en inglés.
+
+Puedes crear la carpeta ''es'' dentro del directorio ''lang'', copiar el fichero ''validation.php'' del directorio ''en''  y traducir tú mismo los mensajes que te interesen.
+Pero seguro que alguien lo ha hecho antes que tú en la comunidad de Laravel: ''github.com/laravel-lang/lang''
+
+
+== ^{ocultar} ==
+__TODO: NO ESTÁ EMPEZADO NI PROBADO, POR HACER.__
+
+editar
+{{./pasted_image005.png}}
+
+formulario:
+{{./pasted_image006.png}}
+
+usaremos verbo patch
+
+
+== ^{finocultar} ==
+
+
+
+====== Test unitarios ======
+Se pueden ejecutar los test de tres maneras (la última es la que produce los resultados más interesantes): 
+	* phpunit
+	* php vendor/bin/phpunit
+	* php artisan test
+
+
+====== Posible ejercicio ======
+
+Que se muestre del fichero .env información como la versión de la aplicación cuando se accede a ''/info''
+
+
+
+
+====== Laravel, Docker y Github ======
+
+Crea el proyecto en Github, por ejemplo vamos a crear uno que se llame colina
+
+Crea una carpeta laravel y dentro de la carpeta clona el proyecto desde Github, por ejemplo:
+''git clone git@github.com:ihavenomouth/colina.git''
+
+Ahora habría que crear el proyecto Laravel, pero como la carpeta colina ya existe nos indicará que el proyecto ya existe. Así que lo que vamos a hacer es mover la carpeta ''colina'' a ''colinagit'', luego creamos el proyecto Laravel y finalmente movemos todo el contenido de ''colinagit'' a la carpeta ''colina''. Es decir:
+'''
+mv colina colinagit
+curl -s "https://laravel.build/colina?with=mysql" | bash
+mv -f colinagit/{.,}* colina
+rmdir colinagit
+'''
+
+Modifica los ficheros de configuración, especialmente el ''.env'' y el ''config/app.php''
+
+Si vas a modifica el fichero ''docker-compose.yml'' para modificarle el nombre al servicio (al contenedor) de la aplicación, tendrás que añadir una variable de entorno al fichero ''.env''
+''APP_SERVICE=colina''
+
+Y ahora sí puedes comprobar si todo funciona correctamente con un ''./vendor/bin/sail up''
+
+====== Seeders ======
+
+https://laravel.com/docs/10.x/seeding
+
+
+====== Deployment ======
+https://laravel.com/docs/10.x/deployment
+
+
+====== Mail ======
+https://laravel.com/docs/10.x/mail

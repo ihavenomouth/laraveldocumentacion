@@ -34,10 +34,14 @@ Concretamente modificaremos la zona horaria, el nombre y la configuración regio
 La zona horaria será '''timezone' => 'Europe/Madrid'''
 Las zonas horarias disponibles son estas: https://www.php.net/manual/es/timezones.europe.php
 
-El resto de las opciones que hay que cambiar:
+El resto de las opciones que podríamos cambiar:
 '''
 'name' => env('APP_NAME', 'Laravel'),
-'locale' => 'en',
+'locale' => 'es',
+'''
+
+No se recomienda que se cambien estas dos (aunque se puede si se se sabe lo que se está haciendo). Ahora mismo con la configruación de arriba si los mensajes de error incluidos en Laravel se tuvieran que mostrar, por defecto se intentarían mostrar en español y, al no encontrar los ficheros de idioma (que no hemos instalado aún), se intentaría en inglés (que sí están disponibles). 
+'''
 'fallback_locale' => 'en',
 'faker_locale' => 'en_US',
 '''

@@ -244,6 +244,18 @@ input[type=button]:hover, input[type=submit]:hover{
 	color: #445566;
 }
 
+input{
+  border: 2px solid #cde;
+  border-radius: 3px;
+  padding: 5px;
+  min-width: 10rem;
+  margin-bottom: 10px;
+}
+
+input [type=checkbox]{
+  min-width: 1rem;
+}
+
 table{
 	border: 1px solid white;
 	border-collapse: collapse;

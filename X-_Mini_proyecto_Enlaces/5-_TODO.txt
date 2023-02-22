@@ -1,0 +1,14 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-22T09:39:03+01:00
+
+====== 5- TODO ======
+
+
+Cosas que faltarían en la miniaplicación:
+	* Validar los campos antes de crear un enlace
+	* Añadir la opción de modificar enlaces
+	* Mostrar enlaces buscando en la categoría
+
+**Recuerda**: es un miniproyecto de prueba para aprender, no merece la pena hacerlo más complejo de lo necesario. En el mundo real las cosas serían mucho más complejas, por ejemplo las categorías estarían en su propia tabla y se podrían modificar, eliminar, crear, etc.
+
