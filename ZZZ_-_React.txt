@@ -5,7 +5,8 @@ Creation-Date: 2023-04-17T22:33:01+02:00
 ====== React ======
 
 
-===== Docker =====
+
+====== Creando el entorno con Docker ======
 
 Creamos el contenedor
 ''docker run --name reactenv -it -d -p 80:80 -h reactenv -v $PWD:/react -w /react ubuntu:23.04 /bin/bash''
@@ -61,6 +62,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
 
 Con la línea ''import App from './App''' cargamos el componente App del fichero ''App.jsx''.
+
 
 ===== Hojas de estilos =====
 
@@ -146,219 +148,255 @@ button:hover, input[type=button]:hover, input[type=submit]:hover  {
 
 
 
-===== React y los hooks =====
+====== React y los hooks básicos ======
+
+
+===== Básico =====
+'''
+//Básico
+import './App.css'
+
+const App = () => {
+  const nombre = "Javier";
+  {/* Si son varias etiquetas, tienen que tener un único padre */}
+  const cont1 = <><h1>Hola {nombre}, ¿qué tal?</h1><p>2 + 3 = {2+3}</p></>;
+  const mult = (a,b) => a*b;
+  const cont2 = <p>4 * 5 = {mult(4,5) }</p>;
+  return <>{cont1}{cont2}</>;
+}
+export default App;
+'''
+
+
+
+
+===== Eventos (onClick) =====
 
 '''
-//import './App.css'
-
-//Básico
-//~const App = () => {
-  //~const nombre = "Javier";
-  //~{/* Si son varias etiquetas, tienen que tener un único padre */}
-  //~const cont1 = <><h1>Hola {nombre}, ¿qué tal?</h1><p>2 + 3 = {2+3}</p></>;
-  //~const mult = (a,b) => a*b;
-  //~const cont2 = <p>4 * 5 = {mult(4,5) }</p>;
-  //~return <>{cont1}{cont2}</>;
-//~}
-//~export default App;
-
-
-
 //Eventos
-//~const App = () => {
+import './App.css'
 
-	//~const encabezado1 = <h1>Reaccionando a un evento</h1>;
+const App = () => {
 
-	//~let i = 0;
-	//~const accion = () => {
-		//~i++;
-		//~alert("Hola caracola " + i);
-	//~}
-	//~const boton = <button onClick={accion}>Acción</button>;
+	const encabezado1 = <h1>Reaccionando a un evento</h1>;
 
-	//~{/* Aunque i se actualice al pulsar el botón, no se refresca el contenido que se muestra */}
+	let i = 0;
+	const accion = () => {
+		i++;
+		alert("Hola caracola " + i);
+	}
+	const boton = <button onClick={accion}>Acción</button>;
 
-	//~return <>{encabezado1}{boton}<p>Contenido de i: {i}</p></>;
-//~}
+	{/* Aunque i se actualice al pulsar el botón, no se refresca el contenido que se muestra */}
 
-//~export default App;
+	return <>{encabezado1}{boton}<p>Contenido de i: {i}</p></>;
+}
+
+export default App;
+'''
 
 
 
+===== Arrays =====
+
+'''
 //Arrays
-/* Para imprimir una colección de datos, cada uno debe tener su propio atributo key.
- * Sobre un array podemos usar la función map(valor, pos)
- */
+//~/* Para imprimir una colección de datos, cada uno debe tener su propio atributo key.
+//~* Sobre un array podemos usar la función map(valor, pos)
+//~*/
+import './App.css'
 
-//~const App = () => {
-	//~const a = ['gato', 'perro', 'loro', 'caballo'];
+const App = () => {
+	const a = ['gato', 'perro', 'loro', 'caballo'];
 
-	//~return (
-		//~<ul>
-			//~{
-				//~a.map(  (v, i) =>	<li key="{i}">{v}</li> )
-			//~}
-		//~</ul>
-	//~);
-//~}
+	return (
+		<ul>
+			{
+				a.map(  (v, i) =>	<li key="{i}">{v}</li> )
+			}
+		</ul>
+	);
+}
 
-//~export default App;
+export default App;
+'''
 
 
 
+
+===== El hook useRef =====
+'''
 //El hook useRef se usa para poder acceder al propio elemento en el DOM
 //No se puede usar un document.querySelector desde React ni podemos asignar un id a un elemento
 //porqu podríamos tener colisiones entre componentes.
 //Se usa el atributo ref como susituto al id que pondríamos en HTML
-//~import {useRef} from 'react';
-//~const App = () => {
-	~const datoRef = useRef();       creamos una referencia
-	~const resultadoRef = useRef();  creamos otra referencia
+import './App.css'
+import {useRef} from 'react';
 
-	//~const procesar = () => {
-		~en la referencia.current se encuentra la etiqueta
-		//~resultadoRef.current.innerHTML = datoRef.current.value;
-	//~}
+const App = () => {
+	const datoRef = useRef();      // creamos una referencia
+	const resultadoRef = useRef(); // creamos otra referencia
 
-	//~return (<div>
-		//~<input type="text" ref={datoRef} />
-		//~<button onClick={procesar}>Acción</button>
-		//~<div ref={resultadoRef}>Nada</div>
-	//~</div>);
-//~}
+	const procesar = () => {
+		//en la referencia.current se encuentra la etiqueta
+		resultadoRef.current.innerHTML = datoRef.current.value;
+	}
 
-//~export default App;
+	return (<div>
+		<input type="text" ref={datoRef} />
+		<button onClick={procesar}>Acción</button>
+		<div ref={resultadoRef}>Nada</div>
+	</div>);
+}
+
+export default App;
+'''
 
 
+==== Ejercicios con el useRef ====
 
+'''
 // Ejercicio: Conversor de KM a millas
-//~import './App.css'
-//~import {useRef} from 'react';
+import './App.css'
+import {useRef} from 'react';
 
-//~const App = () => {
-	//~const factorConversión = 0.6214;
-	//~const inputKMRef = useRef();
-	//~const divResultadoRef = useRef();
+const App = () => {
+	const factorConversión = 0.6214;
+	const inputKMRef = useRef();
+	const divResultadoRef = useRef();
 
-	//~const pasarKmAMillas = () =>{
-		~1.- Recuperamos el valor introducido en el input
-		//~let km = inputKMRef.current.value;
-		~2.- Calculamos la conversión y escribimos el resultado en la divResultado
-		//~divResultadoRef.current.innerHTML = `${km} Km son ${ km * factorConversión} millas`;
-	//~}
+	const pasarKmAMillas = () =>{
+		//1.- Recuperamos el valor introducido en el input
+		let km = inputKMRef.current.value;
+		//2.- Calculamos la conversión y escribimos el resultado en la divResultado
+		divResultadoRef.current.innerHTML = `${km} Km son ${ km * factorConversión} millas`;
+	}
 
-	~El cuadro de texto
-	//~const i = <input type="number" ref={inputKMRef}/>;
+	//El cuadro de texto
+	const i = <input type="number" ref={inputKMRef}/>;
 
-	//~return (
-		//~<>
-		//~<label>Kilómetros:</label><br/>
-		//~{i}<br/>
-		//~<input type="button" value="Convertir" onClick={pasarKmAMillas}/><br/>
-		//~<div ref={divResultadoRef}></div>
-		//~</>
-	//~);
-//~}
-//~export default App;
+	return (
+		<>
+		<label>Kilómetros:</label><br/>
+		{i}<br/>
+		<input type="button" value="Convertir" onClick={pasarKmAMillas}/><br/>
+		<div ref={divResultadoRef}></div>
+		</>
+	);
+}
+export default App;
+'''
 
 
 
+'''
 //Ejercicio: conversor de euros a pesetas
-//~import './App.css';
-//~import {useRef} from 'react';
+import './App.css';
+import {useRef} from 'react';
+
+const App = () => {
+	const txtEurosRef = useRef();
+	const divResultadoRef = useRef();
+
+	const convertir = () => {
+		const euros = txtEurosRef.current.value;
+		//Un euro es 155.386 pts
+		divResultadoRef.current.innerHTML = `${euros} euros son ${euros * 166.386} pts`;
+	}
+
+	return (
+		<>
+		~<h1>Conversor de euros a pesetas</h1>
+		<label>Euros:</label><br/>
+		<input type="number" ref={txtEurosRef} default="0"/><br/>
+		<input type="button" value="Convertir" onClick={convertir} /><br/>
+		<div ref={divResultadoRef}></div>
+		</>
+	);
+}
+
+export default App;
+'''
 
 
-//~const App = () => {
-	//~const txtEurosRef = useRef();
-	//~const divResultadoRef = useRef();
 
-	//~const convertir = () => {
-		//~const euros = txtEurosRef.current.value;
-		~Un euro es 155.386 pts
-		//~divResultadoRef.current.innerHTML = `${euros} euros son ${euros * 166.386} pts`;
-	//~}
+===== El hook useState =====
 
-	//~return (
-		//~<>
-		//<h1>Conversor de euros a pesetas</h1>
-		//~<label>Euros:</label><br/>
-		//~<input type="number" ref={txtEurosRef} default="0"/><br/>
-		//~<input type="button" value="Convertir" onClick={convertir} /><br/>
-		//~<div ref={divResultadoRef}></div>
-		//~</>
-	//~);
-//~}
-
-//~export default App;
-
-
-
+'''
 //Hook useState se utiliza para crear variables que React controlará
 //Los componentes serán actualizados cuando se modifique alguna de estas variables de estado
 // Vamos a implementar un contador
-//~import './App.css';
-//~import {useRef, useState} from 'react';
+import './App.css';
+import {useRef, useState} from 'react';
 
-// Nota: fíjate que en realidad el hook useRef no es necesario porque no se usa
+// Nota: fíjate que en realidad el hook useRef no es necesario porque no se usa, se añade para que
+// se vea cómo se importan dos hooks diferentes
 
-//~const App =() =>{
-	~ El 0 es el valor inicial, devuelve la vble y un método para actualizarla
-	//~const [contador, setContador] = useState(0);
-	//~const divResultadoRef = useRef();
+const App =() =>{
+	// El 0 es el valor inicial, devuelve la vble y un método para actualizarla
+	const [contador, setContador] = useState(0);
+	const divResultadoRef = useRef();
 
-	//~const incContador = () => {
-		//~setContador(contador +1);
-	//~}
+	const incContador = () => {
+		setContador(contador +1);
+	}
 
-	//~return (<>
-		//~<h1>El Hook useState</h1>
-		//~<button onClick={incContador}>Incrementar contador</button><br/>
-		//~<button onClick={ ()=> setContador(contador+5) }>Incrementar contador + 5</button><br/>
+	return (<>
+		<h1>El Hook useState</h1>
+		<button onClick={incContador}>Incrementar contador</button><br/>
+		<button onClick={ ()=> setContador(contador+5) }>Incrementar contador + 5</button><br/>
 
-		//~<div ref={divResultadoRef}>Contador: {contador}</div>
-	//~</>);
-//~}
+		<div ref={divResultadoRef}>Contador: {contador}</div>
+	</>);
+}
 
-//~export default App;
-
-
-
-//Ejericio useState
-
-//~import './App.css';
-//~import {useRef, useState} from 'react';
-
-//~const App =() =>{
-	~ El 0 es el valor inicial, devuelve la vble y un método para actualizarla
-	//~const [indiceImagen, setIndiceImagen] = useState(0);
-
-	//~const divResultadoRef = useRef();
-
-	//~const arrPics = ["https://picsum.photos/id/238/200/300",
-							//~"https://picsum.photos/id/257/200/300",
-							//~"https://picsum.photos/id/287/200/300",
-							//~"https://picsum.photos/id/297/200/300",
-							//~"https://picsum.photos/id/299/200/300",
-							//~"https://picsum.photos/id/99/200/300",
-							//~];
-
-	//~const incContador = () => {
-		//~setContador(contador +1);
-	//~}
-
-	//~return (<>
-		//~<h1>Ejercicio del hook useState</h1>
-		//~<button onClick={ ()=> setIndiceImagen(indiceImagen+1) }>Cambiar imagen</button><br/>
-
-		//~<img src={ arrPics[indiceImagen % arrPics.length] }/>
-	//~</>);
-//~}
-
-//~export default App;
+export default App;
+'''
 
 
 
+==== Ejercicio: useState para cambiar una imagen ====
 
+'''
+// Ejercicio useState
+// Crea un componente que cambie una imagen cada vez que se pulsa en un botón.
+import './App.css';
+import {useRef, useState} from 'react';
+
+const App =() =>{
+	// El 0 es el valor inicial, devuelve la vble y un método para actualizarla
+	const [indiceImagen, setIndiceImagen] = useState(0);
+
+	const divResultadoRef = useRef();
+
+	const arrPics = ["https://picsum.photos/id/238/200/300",
+							"https://picsum.photos/id/257/200/300",
+							"https://picsum.photos/id/287/200/300",
+							"https://picsum.photos/id/297/200/300",
+							"https://picsum.photos/id/299/200/300",
+							"https://picsum.photos/id/99/200/300",
+							];
+
+	const incContador = () => {
+		setContador(contador +1);
+	}
+
+	return (<>
+		<h1>Ejercicio del hook useState</h1>
+		<button onClick={ ()=> setIndiceImagen(indiceImagen+1) }>Cambiar imagen</button><br/>
+
+		<img src={ arrPics[indiceImagen % arrPics.length] }/>
+	</>);
+}
+
+export default App;
+'''
+
+
+
+==== Ejercicio: dos vbles de estado que se actualicen dinámicamente con onChange ====
+
+'''
 // Ejercicio: usando sólo useState, crear un componente que calcule el área de un triángulo.
 // El resultado se actualizará cada vez que se teclee en uno de los dos
 // textboxes, NO habrá un botón que se pulse para hacer el cálculo.
@@ -387,6 +425,33 @@ export default App;
 '''
 
 
+
+====== Varios componentes ======
+
+Cada componente lo crearemos en un fichero diferente. El nombre del fichero comenzará en mayúscula y el nombre del componente también.
+Los crearemos en una carpeta que crearemos: ''src/components''
+
+Fichero ''App.jsx'':
+'''
+import Saludo from './components/Saludo.jsx';
+
+const App = () => {
+	return (<>
+	<Saludo/>
+	<p>Usamos el componente Saludo para mostrar el mensaje de arriba.</p>
+	</>);
+}
+export default App;
+'''
+
+
+Fichero ''components/Saludo.jsx'':
+'''
+const Saludo = () => {
+	return <h1>Hola caracola</h1>
+}
+export default Saludo;
+'''
 
 
 
