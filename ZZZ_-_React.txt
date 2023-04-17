@@ -1,0 +1,393 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-04-17T22:33:01+02:00
+
+====== React ======
+
+
+===== Docker =====
+
+Creamos el contenedor
+''docker run --name reactenv -it -d -p 80:80 -h reactenv -v $PWD:/react -w /react ubuntu:23.04 /bin/bash''
+
+Actualizamos la imagen e instalamos node y npm
+''docker exec -it reactenv apt update && apt upgrade -y && apt install nodejs npm nano''
+
+Entramos en el contenedor para generar un nuevo proyecto usando vite. El usuario será ''ubuntu'' para que el usuario actual sea el propietario de los ficheros. 
+'''
+docker exec -it -u ubuntu reactenv /bin/bash
+
+npm create vite@latest app1
+'''
+
+Cuando terminemos la creación del proyecto. Eso generará el directorio ''app1'' y dentro algunos ficheros. También nos dará algunas instrucciones (''npm install'').
+
+El que tendremos que cambiar es ''vite.config.js'' para cambiar el puerto por defecto  permitir que podamos acceder desde fuera del contenedor:
+'''
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+  	host: true,
+  	port: 80
+  },
+})
+'''
+
+
+Para arrancar el servidor usaremos un ''npm run dev''.
+
+El fichero ''index.html'' tiene una ''<div id="root"></div>'' que será la raíz de nuestra aplicación. Todo nuestro código lo colocaremos dentro del directorio ''src''. Las imágenes de nuestra aplicación estarán en ''public'', pero las imágenes de nuestros componentes estarán en ''src/assets''.
+
+El fichero ''index.html'' carga como módulo el fichero ''main.jsx'' así: 
+''<script type="module" src="/src/main.jsx"></script>'' 
+
+El fichero ''main.jsx'' carga las bibliotecas de react, una hoja de estilos global y carga nuestra aplicación como un componente en la división con ''id="root"''. 
+'''
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+	<App />
+  </React.StrictMode>,
+)
+'''
+
+
+Con la línea ''import App from './App''' cargamos el componente App del fichero ''App.jsx''.
+
+===== Hojas de estilos =====
+
+El fichero ''App.jsx'' define el componente ''App''. En su interior se carga la hoja de estilos del componente:
+''import './App.css';''
+
+Luego cargamos dos hojas de estilos ''index.css'' y ''App.css''. Si definimos una regla ''h1{color:red}'' en una hoja y otra ''h1{color:blue}'' en la otra hoja ¿de qué color se dibujará una etiqueta h1 en nuestro componente App?
+Pues del color que aparezca en ''index.css'', que tiene prioridad.
+
+Contenido de ''index.css'':
+'''
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway&display=swap');
+
+*{
+  box-sizing: border-box;
+}
+
+body{
+  background-color: #334455;
+  color: #abc;
+  font-family: 'Nunito', sans-serif;
+  margin: 0;
+  font-weight: 300;
+}
+
+h1{
+  font-family: 'Raleway', Arial, sans-serif;
+  font-weight: 300;
+  color: red;
+}
+'''
+
+
+
+Contenido de ''App.css'':
+'''
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+#root h1{
+	color: #bdf;
+}
+
+input {
+  color: #666;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #ddd;
+  transition: border-color 0.25s;
+  margin-bottom: 5px;
+}
+input:hover  {
+  border-color: #646cff;
+}
+
+button, input[type=button], input[type=submit] {
+  color: #aaa;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+  margin-bottom: 5px;
+}
+button:hover, input[type=button]:hover, input[type=submit]:hover  {
+  border-color: #646cff;
+}
+'''
+
+
+
+
+
+===== React y los hooks =====
+
+'''
+//import './App.css'
+
+//Básico
+//~const App = () => {
+  //~const nombre = "Javier";
+  //~{/* Si son varias etiquetas, tienen que tener un único padre */}
+  //~const cont1 = <><h1>Hola {nombre}, ¿qué tal?</h1><p>2 + 3 = {2+3}</p></>;
+  //~const mult = (a,b) => a*b;
+  //~const cont2 = <p>4 * 5 = {mult(4,5) }</p>;
+  //~return <>{cont1}{cont2}</>;
+//~}
+//~export default App;
+
+
+
+//Eventos
+//~const App = () => {
+
+	//~const encabezado1 = <h1>Reaccionando a un evento</h1>;
+
+	//~let i = 0;
+	//~const accion = () => {
+		//~i++;
+		//~alert("Hola caracola " + i);
+	//~}
+	//~const boton = <button onClick={accion}>Acción</button>;
+
+	//~{/* Aunque i se actualice al pulsar el botón, no se refresca el contenido que se muestra */}
+
+	//~return <>{encabezado1}{boton}<p>Contenido de i: {i}</p></>;
+//~}
+
+//~export default App;
+
+
+
+//Arrays
+/* Para imprimir una colección de datos, cada uno debe tener su propio atributo key.
+ * Sobre un array podemos usar la función map(valor, pos)
+ */
+
+//~const App = () => {
+	//~const a = ['gato', 'perro', 'loro', 'caballo'];
+
+	//~return (
+		//~<ul>
+			//~{
+				//~a.map(  (v, i) =>	<li key="{i}">{v}</li> )
+			//~}
+		//~</ul>
+	//~);
+//~}
+
+//~export default App;
+
+
+
+//El hook useRef se usa para poder acceder al propio elemento en el DOM
+//No se puede usar un document.querySelector desde React ni podemos asignar un id a un elemento
+//porqu podríamos tener colisiones entre componentes.
+//Se usa el atributo ref como susituto al id que pondríamos en HTML
+//~import {useRef} from 'react';
+//~const App = () => {
+	~const datoRef = useRef();       creamos una referencia
+	~const resultadoRef = useRef();  creamos otra referencia
+
+	//~const procesar = () => {
+		~en la referencia.current se encuentra la etiqueta
+		//~resultadoRef.current.innerHTML = datoRef.current.value;
+	//~}
+
+	//~return (<div>
+		//~<input type="text" ref={datoRef} />
+		//~<button onClick={procesar}>Acción</button>
+		//~<div ref={resultadoRef}>Nada</div>
+	//~</div>);
+//~}
+
+//~export default App;
+
+
+
+// Ejercicio: Conversor de KM a millas
+//~import './App.css'
+//~import {useRef} from 'react';
+
+//~const App = () => {
+	//~const factorConversión = 0.6214;
+	//~const inputKMRef = useRef();
+	//~const divResultadoRef = useRef();
+
+	//~const pasarKmAMillas = () =>{
+		~1.- Recuperamos el valor introducido en el input
+		//~let km = inputKMRef.current.value;
+		~2.- Calculamos la conversión y escribimos el resultado en la divResultado
+		//~divResultadoRef.current.innerHTML = `${km} Km son ${ km * factorConversión} millas`;
+	//~}
+
+	~El cuadro de texto
+	//~const i = <input type="number" ref={inputKMRef}/>;
+
+	//~return (
+		//~<>
+		//~<label>Kilómetros:</label><br/>
+		//~{i}<br/>
+		//~<input type="button" value="Convertir" onClick={pasarKmAMillas}/><br/>
+		//~<div ref={divResultadoRef}></div>
+		//~</>
+	//~);
+//~}
+//~export default App;
+
+
+
+//Ejercicio: conversor de euros a pesetas
+//~import './App.css';
+//~import {useRef} from 'react';
+
+
+//~const App = () => {
+	//~const txtEurosRef = useRef();
+	//~const divResultadoRef = useRef();
+
+	//~const convertir = () => {
+		//~const euros = txtEurosRef.current.value;
+		~Un euro es 155.386 pts
+		//~divResultadoRef.current.innerHTML = `${euros} euros son ${euros * 166.386} pts`;
+	//~}
+
+	//~return (
+		//~<>
+		//<h1>Conversor de euros a pesetas</h1>
+		//~<label>Euros:</label><br/>
+		//~<input type="number" ref={txtEurosRef} default="0"/><br/>
+		//~<input type="button" value="Convertir" onClick={convertir} /><br/>
+		//~<div ref={divResultadoRef}></div>
+		//~</>
+	//~);
+//~}
+
+//~export default App;
+
+
+
+//Hook useState se utiliza para crear variables que React controlará
+//Los componentes serán actualizados cuando se modifique alguna de estas variables de estado
+// Vamos a implementar un contador
+//~import './App.css';
+//~import {useRef, useState} from 'react';
+
+// Nota: fíjate que en realidad el hook useRef no es necesario porque no se usa
+
+//~const App =() =>{
+	~ El 0 es el valor inicial, devuelve la vble y un método para actualizarla
+	//~const [contador, setContador] = useState(0);
+	//~const divResultadoRef = useRef();
+
+	//~const incContador = () => {
+		//~setContador(contador +1);
+	//~}
+
+	//~return (<>
+		//~<h1>El Hook useState</h1>
+		//~<button onClick={incContador}>Incrementar contador</button><br/>
+		//~<button onClick={ ()=> setContador(contador+5) }>Incrementar contador + 5</button><br/>
+
+		//~<div ref={divResultadoRef}>Contador: {contador}</div>
+	//~</>);
+//~}
+
+//~export default App;
+
+
+
+//Ejericio useState
+
+//~import './App.css';
+//~import {useRef, useState} from 'react';
+
+//~const App =() =>{
+	~ El 0 es el valor inicial, devuelve la vble y un método para actualizarla
+	//~const [indiceImagen, setIndiceImagen] = useState(0);
+
+	//~const divResultadoRef = useRef();
+
+	//~const arrPics = ["https://picsum.photos/id/238/200/300",
+							//~"https://picsum.photos/id/257/200/300",
+							//~"https://picsum.photos/id/287/200/300",
+							//~"https://picsum.photos/id/297/200/300",
+							//~"https://picsum.photos/id/299/200/300",
+							//~"https://picsum.photos/id/99/200/300",
+							//~];
+
+	//~const incContador = () => {
+		//~setContador(contador +1);
+	//~}
+
+	//~return (<>
+		//~<h1>Ejercicio del hook useState</h1>
+		//~<button onClick={ ()=> setIndiceImagen(indiceImagen+1) }>Cambiar imagen</button><br/>
+
+		//~<img src={ arrPics[indiceImagen % arrPics.length] }/>
+	//~</>);
+//~}
+
+//~export default App;
+
+
+
+
+// Ejercicio: usando sólo useState, crear un componente que calcule el área de un triángulo.
+// El resultado se actualizará cada vez que se teclee en uno de los dos
+// textboxes, NO habrá un botón que se pulse para hacer el cálculo.
+// Nota: usa onChange
+import './App.css';
+import {useState} from 'react';
+
+const App = () => {
+	const [altura, setAltura] = useState(0);
+	const [ancho, setAncho] = useState(0);
+
+
+	return (<>
+		<h1>Calcular el área de un triángulo</h1>
+		<p>Usar onChange para actualizar el cálculo del área con cada cambio en uno de los dos
+		textboxes que están definidos. <u>No se usará</u> el hook useRef.</p>
+		<label>Altura (cm):</label><br/>
+		<input type="number" default="0" onChange={ e=>{ setAltura(Number(e.target.value) )} } /><br/>
+		<label>Ancho (cm):</label><br/>
+		<input type="number" default="0" onChange={ e=>{ setAncho(Number(e.target.value) )} }/><br/>
+		<div>Resultado: {altura*ancho/2} cm²</div>
+	</>);
+}
+
+export default App;
+'''
+
+
+
+
+
+
